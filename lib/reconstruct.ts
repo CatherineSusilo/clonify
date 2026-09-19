@@ -83,6 +83,19 @@ async function gatherSourceImages(scan: {
 }
 
 export async function reconstructScan(scanId: string) {
+  try {
+    await reconstructScanInner(scanId);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Reconstruction failed";
+    console.error(`[reconstruct] scan ${scanId} failed:`, message);
+    await prisma.scan.update({
+      where: { id: scanId },
+      data: { status: "error", errorMessage: message },
+    });
+  }
+}
+
+async function reconstructScanInner(scanId: string) {
   const scan = await prisma.scan.findUnique({ where: { id: scanId } });
   if (!scan) return;
 

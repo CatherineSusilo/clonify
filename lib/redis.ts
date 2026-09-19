@@ -2,14 +2,17 @@ import IORedis from "ioredis";
 
 const globalForRedis = globalThis as unknown as { redis?: IORedis };
 
-export const redisConnection =
-  globalForRedis.redis ??
-  new IORedis(process.env.REDIS_URL!, {
+function createRedis() {
+  const url = process.env.REDIS_URL ?? "redis://127.0.0.1:6379";
+  return new IORedis(url, {
     maxRetriesPerRequest: null,
     lazyConnect: true,
-    retryStrategy: () => null, // fail fast instead of retrying forever
+    retryStrategy: () => null,
     reconnectOnError: () => false,
   });
+}
+
+export const redisConnection = globalForRedis.redis ?? createRedis();
 
 redisConnection.on("error", () => {
   // Swallowed here; callers probe reachability explicitly via isRedisReachable().

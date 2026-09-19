@@ -56,3 +56,17 @@ export async function requireUser() {
   if (!user) throw new Error("UNAUTHENTICATED");
   return user;
 }
+
+export function toPublicUser(
+  user: NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>
+) {
+  return {
+    id: user.id,
+    email: user.email,
+    role: user.role,
+    unitPreference: user.unitPreference,
+    subscription: user.subscription
+      ? { isPro: user.subscription.isPro, plan: user.subscription.plan }
+      : null,
+  };
+}

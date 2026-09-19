@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { uploadScanPhoto, uploadScanPanorama } from "@/lib/storage";
+import { getPlanLimits, isAtLimit } from "@/lib/plans";
 import { geocodeAddress } from "@/lib/geocode";
 import { findPublicBuildingFootprint } from "@/lib/osmBuilding";
 import { findBuildingPhotos } from "@/lib/wikimedia";
@@ -10,6 +11,26 @@ import { searchPlaceImages } from "@/lib/imageSearch";
 import { enqueueScanReconstruction } from "@/lib/queue";
 import { ROLES } from "@/lib/roles";
 
+export const maxDuration = 60;
+
+export async function GET() {
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json({ error: "Sign in required" }, { status: 401 });
+  }
+
+  const scans = await prisma.scan.findMany({
+    where: { userId: user.id },
+    orderBy: { createdAt: "desc" },
+    include: { _count: { select: { rooms: true } } },
+  });
+
+  return NextResponse.json({
+    scans,
+    plan: getPlanLimits(user.subscription),
+  });
+}
+
 export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
@@ -17,6 +38,18 @@ export async function POST(request: Request) {
   }
   if (!user.role) {
     return NextResponse.json({ error: "Select a role before scanning" }, { status: 400 });
+  }
+
+  const plan = getPlanLimits(user.subscription);
+  const existingCount = await prisma.scan.count({ where: { userId: user.id } });
+  if (isAtLimit(existingCount, plan.maxActiveScans)) {
+    return NextResponse.json(
+      {
+        error: `Starter includes ${plan.maxActiveScans} active scan. Delete one or upgrade to Pro.`,
+        upgrade: true,
+      },
+      { status: 402 }
+    );
   }
 
   const form = await request.formData();

@@ -1,7 +1,12 @@
 import Link from "next/link";
+import { getCurrentUser } from "@/lib/auth";
 import { ROLE_INFO, ROLES } from "@/lib/roles";
 
-export default function Home() {
+export default async function Home() {
+  const user = await getCurrentUser();
+  const primaryHref = user ? (user.role ? "/scans" : "/onboarding") : "/signup";
+  const primaryLabel = user ? (user.role ? "Open my scans" : "Finish setup") : "Start a scan";
+
   return (
     <div className="flex flex-1 flex-col">
       <section className="mx-auto grid w-full max-w-6xl gap-10 px-6 py-16 lg:grid-cols-[1.1fr_1fr] lg:items-center lg:py-24">
@@ -17,10 +22,10 @@ export default function Home() {
           </p>
           <div className="mt-8 flex flex-wrap gap-4">
             <Link
-              href="/signup"
+              href={primaryHref}
               className="border border-blueprint-light bg-blueprint px-6 py-3 font-medium hover:bg-blueprint/80"
             >
-              Start a scan
+              {primaryLabel}
             </Link>
             <Link
               href="/pricing"
@@ -81,10 +86,10 @@ export default function Home() {
             <p className="mt-2 text-muted">Free to start. One active scan, no card required.</p>
           </div>
           <Link
-            href="/signup"
+            href={primaryHref}
             className="shrink-0 border border-blueprint-light bg-blueprint px-6 py-3 font-medium hover:bg-blueprint/80"
           >
-            Create an account
+            {user ? "Continue" : "Create an account"}
           </Link>
         </div>
       </section>

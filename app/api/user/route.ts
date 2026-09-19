@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, toPublicUser } from "@/lib/auth";
 import { ROLES } from "@/lib/roles";
 
 export async function GET() {
   const user = await getCurrentUser();
-  return NextResponse.json({ user });
+  return NextResponse.json({ user: user ? toPublicUser(user) : null });
 }
 
 const bodySchema = z.object({
@@ -30,5 +30,5 @@ export async function POST(request: Request) {
     data: { role, unitPreference },
   });
 
-  return NextResponse.json({ user: updated });
+  return NextResponse.json({ user: toPublicUser({ ...user, ...updated }) });
 }

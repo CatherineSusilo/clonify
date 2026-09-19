@@ -1,11 +1,21 @@
+let lastNominatimAt = 0;
+
+async function nominatimFetch(url: string) {
+  const wait = 1100 - (Date.now() - lastNominatimAt);
+  if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
+  lastNominatimAt = Date.now();
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  return fetch(url, {
+    headers: { "User-Agent": `clonify-app/1.0 (${appUrl})` },
+  });
+}
+
 export async function geocodeAddress(query: string) {
   try {
     const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(
       query
     )}`;
-    const res = await fetch(url, {
-      headers: { "User-Agent": "clonify-app/1.0" },
-    });
+    const res = await nominatimFetch(url);
     if (!res.ok) return null;
     const results = (await res.json()) as { lat: string; lon: string }[];
     if (!results.length) return null;
@@ -35,7 +45,7 @@ export async function suggestAddresses(query: string): Promise<AddressSuggestion
   const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&namedetails=1&limit=5&q=${encodeURIComponent(
     query
   )}`;
-  const res = await fetch(url, { headers: { "User-Agent": "clonify-app/1.0" } });
+  const res = await nominatimFetch(url);
   if (!res.ok) return [];
   const results = (await res.json()) as {
     display_name: string;

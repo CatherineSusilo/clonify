@@ -27,6 +27,7 @@ export function RoomsPanel({
   const [panoramaUrl, setPanoramaUrl] = useState<string | null>(null);
   const [newRoomName, setNewRoomName] = useState("");
   const [addingRoom, setAddingRoom] = useState(false);
+  const [roomError, setRoomError] = useState<string | null>(null);
   const [connectingRoomId, setConnectingRoomId] = useState<string | null>(null);
   const [navFrom, setNavFrom] = useState("");
   const [navTo, setNavTo] = useState("");
@@ -46,13 +47,19 @@ export function RoomsPanel({
     e.preventDefault();
     if (!newRoomName.trim()) return;
     setAddingRoom(true);
-    await fetch(`/api/scans/${scanId}/rooms`, {
+    setRoomError(null);
+    const res = await fetch(`/api/scans/${scanId}/rooms`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: newRoomName.trim() }),
     });
-    setNewRoomName("");
+    const data = await res.json();
     setAddingRoom(false);
+    if (!res.ok) {
+      setRoomError(data.error ?? "Could not add room");
+      return;
+    }
+    setNewRoomName("");
     onRoomsChanged();
   }
 
@@ -138,6 +145,14 @@ export function RoomsPanel({
         })}
       </ul>
 
+      {roomError && (
+        <p className="mt-3 text-sm text-danger">
+          {roomError}{" "}
+          <a href="/pricing" className="text-blueprint-light hover:underline">
+            See pricing
+          </a>
+        </p>
+      )}
       <form onSubmit={addRoom} className="mt-4 flex gap-2">
         <input
           value={newRoomName}

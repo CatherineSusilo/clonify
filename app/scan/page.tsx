@@ -193,7 +193,16 @@ export default function ScanPage() {
           </label>
         </fieldset>
 
-        {error && <p className="text-sm text-danger">{error}</p>}
+        {error && (
+          <p className="text-sm text-danger">
+            {error}{" "}
+            {error.toLowerCase().includes("upgrade") && (
+              <a href="/pricing" className="text-blueprint-light hover:underline">
+                See pricing
+              </a>
+            )}
+          </p>
+        )}
 
         <button
           type="submit"

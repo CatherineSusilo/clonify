@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { getPlanLimits, isAtLimit } from "@/lib/plans";
 
 const bodySchema = z.object({
   name: z.string().min(1).max(80),
@@ -22,6 +23,18 @@ export async function POST(
   const parsed = bodySchema.safeParse(await request.json());
   if (!parsed.success) {
     return NextResponse.json({ error: "Enter a room name" }, { status: 400 });
+  }
+
+  const plan = getPlanLimits(user.subscription);
+  const roomCount = await prisma.room.count({ where: { scanId: id } });
+  if (isAtLimit(roomCount, plan.maxRoomsPerScan)) {
+    return NextResponse.json(
+      {
+        error: `Starter includes ${plan.maxRoomsPerScan} rooms per scan. Upgrade to Pro for unlimited rooms.`,
+        upgrade: true,
+      },
+      { status: 402 }
+    );
   }
 
   const room = await prisma.room.create({

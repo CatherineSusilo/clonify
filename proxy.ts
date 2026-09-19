@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 
 const SESSION_COOKIE = "session";
 
-const PROTECTED_PREFIXES = ["/onboarding", "/scan", "/viewer"];
+const PROTECTED_PREFIXES = ["/onboarding", "/scan", "/viewer", "/scans", "/account", "/checkout"];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;

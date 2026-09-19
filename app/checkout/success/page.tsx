@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { stripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { ROLE_INFO, type RoleKey } from "@/lib/roles";
@@ -22,7 +22,8 @@ export default async function CheckoutSuccessPage({
   let verified = false;
   let planName = "Pro";
 
-  if (session_id) {
+  const stripe = getStripe();
+  if (session_id && stripe) {
     try {
       const session = await stripe.checkout.sessions.retrieve(session_id);
       verified = session.payment_status === "paid" || session.status === "complete";
@@ -78,10 +79,10 @@ export default async function CheckoutSuccessPage({
       )}
 
       <Link
-        href="/scan"
+        href="/scans"
         className="mt-8 w-fit border border-blueprint-light bg-blueprint px-6 py-3 font-medium hover:bg-blueprint/80"
       >
-        Start a new scan
+        Go to my scans
       </Link>
     </div>
   );

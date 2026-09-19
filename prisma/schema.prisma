@@ -42,7 +42,7 @@ model Session {
   id        String   @id @default(cuid())
   token     String   @unique
   userId    String
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   expiresAt DateTime
   createdAt DateTime @default(now())
 }
@@ -50,7 +50,7 @@ model Session {
 model Scan {
   id                String     @id @default(cuid())
   userId            String
-  user              User       @relation(fields: [userId], references: [id])
+  user              User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   role              Role
   placeTitle        String? // e.g. "CN Tower" — used to search Wikimedia Commons/Openverse for reconstruction images
   street            String
@@ -64,18 +64,21 @@ model Scan {
   panoramaKey       String? // S3 object key for an optional equirectangular (360°) photo, preferred as the reconstruction source
   referenceImages   String     @default("[]") // JSON array of {url,title,license,attribution,source} found by searching placeTitle online
   status            ScanStatus @default(processing)
+  errorMessage      String?
   modelUrl          String?
   isPublicBuilding  Boolean    @default(false)
   blueprintSource   String? // JSON: { provider, attribution, license, footprint, tags } from public open data
   rooms             Room[]
   createdAt         DateTime   @default(now())
   updatedAt         DateTime   @updatedAt
+
+  @@index([userId])
 }
 
 model Room {
   id           String   @id @default(cuid())
   scanId       String
-  scan         Scan     @relation(fields: [scanId], references: [id])
+  scan         Scan     @relation(fields: [scanId], references: [id], onDelete: Cascade)
   name         String
   category     String?
   photoKeys    String   @default("[]") // JSON string array of S3 object keys
@@ -88,7 +91,7 @@ model Room {
 model Subscription {
   id                   String   @id @default(cuid())
   userId               String   @unique
-  user                 User     @relation(fields: [userId], references: [id])
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   isPro                Boolean  @default(false)
   plan                 String?
   stripeCustomerId     String?

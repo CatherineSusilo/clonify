@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { stripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 import { getCurrentUser } from "@/lib/auth";
 
 const PLAN_PRICES: Record<string, { name: string; amount: number }> = {
@@ -22,6 +22,14 @@ export async function POST(request: Request) {
 
   const plan = PLAN_PRICES[parsed.data.plan];
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
+  const stripe = getStripe();
+  if (!stripe) {
+    return NextResponse.json(
+      { error: "Stripe is not configured with a real test key yet." },
+      { status: 502 }
+    );
+  }
 
   try {
     const session = await stripe.checkout.sessions.create({

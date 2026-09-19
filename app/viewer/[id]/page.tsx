@@ -38,12 +38,13 @@ export default function ViewerPage({ params }: { params: Promise<{ id: string }>
   const { id } = use(params);
   const router = useRouter();
   const [scan, setScan] = useState<Scan | null>(null);
+  const [hdExports, setHdExports] = useState(false);
 
   const loadScan = useCallback(async () => {
     const res = await fetch(`/api/scans/${id}`);
     const data = await res.json();
     if (!data.scan) {
-      router.replace("/scan");
+      router.replace("/scans");
       return;
     }
     if (data.scan.status !== "ready") {
@@ -51,6 +52,7 @@ export default function ViewerPage({ params }: { params: Promise<{ id: string }>
       return;
     }
     setScan(data.scan);
+    setHdExports(Boolean(data.plan?.hdExports));
   }, [id, router]);
 
   useEffect(() => {
@@ -70,11 +72,40 @@ export default function ViewerPage({ params }: { params: Promise<{ id: string }>
 
   return (
     <div className="flex flex-1 flex-col">
-      <header className="border-b border-line px-6 py-4">
-        <p className="text-sm text-blueprint-light">{info.label}</p>
-        <h1 className="font-display text-xl font-medium">
-          {scan.street}, {scan.city}
-        </h1>
+      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-line px-6 py-4">
+        <div>
+          <p className="text-sm text-blueprint-light">{info.label}</p>
+          <h1 className="font-display text-xl font-medium">
+            {scan.placeTitle || `${scan.street}, ${scan.city}`}
+          </h1>
+          {scan.placeTitle && (
+            <p className="text-sm text-muted">
+              {scan.street}, {scan.city}
+            </p>
+          )}
+        </div>
+        <div className="flex gap-3">
+          {(hdExports || !scan.modelUrl) && (
+            <a
+              href={scan.modelUrl ?? `/api/scans/${scan.id}/model`}
+              download
+              className="border border-line px-3 py-1.5 text-sm hover:border-muted"
+            >
+              Download GLB
+            </a>
+          )}
+          {!hdExports && scan.modelUrl && (
+            <a href="/pricing" className="border border-line px-3 py-1.5 text-sm text-muted hover:border-muted">
+              Upgrade for HD export
+            </a>
+          )}
+          <a
+            href={`/api/scans/${scan.id}/report`}
+            className="border border-line px-3 py-1.5 text-sm hover:border-muted"
+          >
+            Report PDF
+          </a>
+        </div>
       </header>
 
       <div className="grid flex-1 gap-4 p-4 lg:grid-cols-2">
