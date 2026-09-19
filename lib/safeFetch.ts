@@ -1,5 +1,6 @@
 import { lookup } from "dns/promises";
 import { isIP } from "net";
+import ipaddr from "ipaddr.js";
 
 /** Fetches a URL that came from third-party data (search API results, user
  * input, etc.) while guarding against SSRF: only https, only ports 443/80,
@@ -27,9 +28,10 @@ async function assertPublicHttpsUrl(rawUrl: string): Promise<void> {
     throw new Error(`Refusing non-https URL: ${rawUrl}`);
   }
 
-  const addresses = isIP(url.hostname)
-    ? [{ address: url.hostname }]
-    : await lookup(url.hostname, { all: true });
+  // url.hostname keeps surrounding brackets for an IPv6 literal ("[::1]"),
+  // which neither isIP() nor dns.lookup() recognize as an address.
+  const hostname = url.hostname.replace(/^\[|\]$/g, "");
+  const addresses = isIP(hostname) ? [{ address: hostname }] : await lookup(hostname, { all: true });
 
   for (const { address } of addresses) {
     if (isPrivateOrReservedAddress(address)) {
@@ -39,31 +41,22 @@ async function assertPublicHttpsUrl(rawUrl: string): Promise<void> {
 }
 
 function isPrivateOrReservedAddress(address: string): boolean {
-  if (address.includes(":")) {
-    const a = address.toLowerCase();
-    return (
-      a === "::1" ||
-      a.startsWith("fe80:") || // link-local
-      a.startsWith("fc") ||
-      a.startsWith("fd") || // unique local
-      a.startsWith("::ffff:127.") ||
-      a.startsWith("::ffff:10.") ||
-      a.startsWith("::ffff:169.254.") ||
-      a.startsWith("::ffff:192.168.")
-    );
+  let parsed: ipaddr.IPv4 | ipaddr.IPv6;
+  try {
+    parsed = ipaddr.parse(address);
+  } catch {
+    return true; // unparseable -> reject
   }
 
-  const parts = address.split(".").map(Number);
-  if (parts.length !== 4 || parts.some((p) => Number.isNaN(p))) return true; // malformed -> reject
+  // Unwrap IPv4-mapped IPv6 addresses (::ffff:10.0.0.1 etc.) to their IPv4
+  // form so the range check below sees the real address, not "ipv4Mapped".
+  if (parsed.kind() === "ipv6" && (parsed as ipaddr.IPv6).isIPv4MappedAddress()) {
+    parsed = (parsed as ipaddr.IPv6).toIPv4Address();
+  }
 
-  const [a, b] = parts;
-  return (
-    a === 127 || // loopback
-    a === 10 || // private
-    (a === 172 && b >= 16 && b <= 31) || // private
-    (a === 192 && b === 168) || // private
-    (a === 169 && b === 254) || // link-local
-    a === 0 || // "this network"
-    a >= 224 // multicast/reserved
-  );
+  // ipaddr.js's range() covers the full IANA special-purpose registry:
+  // loopback, private, linkLocal, uniqueLocal, carrierGradeNat, reserved,
+  // benchmarking, etc. Only "unicast" (and IPv6 "unicast"/global) is a
+  // real public address safe to fetch.
+  return parsed.range() !== "unicast";
 }
