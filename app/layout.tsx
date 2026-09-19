@@ -39,6 +39,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     >
       <head>
         <Script
+          type="module"
           src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"
           integrity="sha384-Ftcjj/GNLxPvzNDftO/oryXB9aGxsGZY9JGqsXG0uUKgQDl9RfDgsx9NJ/4IVNPe"
           crossOrigin="anonymous"
