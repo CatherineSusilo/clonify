@@ -69,6 +69,8 @@ model Scan {
   modelUrl          String?
   isPublicBuilding  Boolean    @default(false)
   blueprintSource   String? // JSON: { provider, attribution, license, footprint, tags } from public open data
+  publicBlueprints  String     @default("[]") // JSON array of {url,title,license,attribution,source} floor plans/blueprints found by searching placeTitle online
+  imageAnalysis     String? // JSON: OpenCV edge/contour analysis (see lib/imageAnalysis.ts) of the first uploaded photo or found blueprint
   rooms             Room[]
   createdAt         DateTime   @default(now())
   updatedAt         DateTime   @updatedAt

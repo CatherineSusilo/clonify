@@ -6,7 +6,8 @@ import { getPlanLimits, isAtLimit } from "@/lib/plans";
 import { geocodeAddress } from "@/lib/geocode";
 import { findPublicBuildingFootprint } from "@/lib/osmBuilding";
 import { analyzeBlueprint } from "@/lib/blueprintAnalysis";
-import { searchInteriorPlaceImages } from "@/lib/imageSearch";
+import { searchInteriorPlaceImages, searchPublicBlueprints } from "@/lib/imageSearch";
+import { analyzeImageWithOpenCV } from "@/lib/imageAnalysis";
 import { enqueueScanReconstruction } from "@/lib/queue";
 import { ROLES } from "@/lib/roles";
 
@@ -145,6 +146,43 @@ async function createScan(request: Request, user: NonNullable<Awaited<ReturnType
     }
   }
 
+  // Same idea as the indoor reference photo search above, but for actual
+  // floor plans / blueprints (Wikimedia Commons, Openverse). Public data
+  // only — never fabricated.
+  let publicBlueprints: string = "[]";
+  if (placeQuery) {
+    try {
+      const blueprints = await searchPublicBlueprints(placeQuery, 4);
+      publicBlueprints = JSON.stringify(blueprints);
+    } catch (err) {
+      console.warn(
+        `[scans] Blueprint search failed for scan ${scan.id}:`,
+        err instanceof Error ? err.message : err
+      );
+    }
+  }
+
+  // Run real OpenCV (edge + contour detection) on whichever source image
+  // best represents the space's layout: a found blueprint first, falling
+  // back to the first uploaded overview photo.
+  let imageAnalysis: string | null = null;
+  try {
+    const blueprintUrl = (JSON.parse(publicBlueprints) as { url: string }[])[0]?.url;
+    const analysisSource = blueprintUrl
+      ? Buffer.from(await (await fetch(blueprintUrl)).arrayBuffer())
+      : photos[0]
+        ? Buffer.from(await photos[0].arrayBuffer())
+        : null;
+    if (analysisSource) {
+      imageAnalysis = JSON.stringify(await analyzeImageWithOpenCV(analysisSource));
+    }
+  } catch (err) {
+    console.warn(
+      `[scans] OpenCV image analysis failed for scan ${scan.id}:`,
+      err instanceof Error ? err.message : err
+    );
+  }
+
   const photoKeys: string[] = [];
   for (const photo of photos) {
     try {
@@ -176,6 +214,8 @@ async function createScan(request: Request, user: NonNullable<Awaited<ReturnType
       photoKeys: JSON.stringify(photoKeys),
       panoramaKey,
       referenceImages,
+      publicBlueprints,
+      imageAnalysis,
       lat: geo?.lat,
       lng: geo?.lng,
       blueprintSource,
