@@ -29,22 +29,28 @@ export function buildRoomMockupGlb(options: {
   width?: number;
   depth?: number;
   height?: number;
+  levels?: number;
   wallColorHex?: string;
   floorColorHex?: string;
 }): Buffer {
   const w = (options.width ?? 4) / 2;
   const d = (options.depth ?? 4) / 2;
   const h = options.height ?? 2.7;
+  const levels = Math.max(1, Math.min(12, options.levels ?? 1));
   const wallColor = hexToRgb(options.wallColorHex ?? "#c9c2b3");
   const floorColor = hexToRgb(options.floorColorHex ?? "#8a7660");
 
-  const parts: Quad[] = [
-    quad([[-w, 0, -d], [w, 0, -d], [w, 0, d], [-w, 0, d]], [0, 1, 0], floorColor),
-    quad([[-w, 0, -d], [-w, h, -d], [w, h, -d], [w, 0, -d]], [0, 0, 1], wallColor), // back
-    quad([[w, 0, d], [w, h, d], [-w, h, d], [-w, 0, d]], [0, 0, -1], wallColor), // front
-    quad([[-w, 0, d], [-w, h, d], [-w, h, -d], [-w, 0, -d]], [1, 0, 0], wallColor), // left
-    quad([[w, 0, -d], [w, h, -d], [w, h, d], [w, 0, d]], [-1, 0, 0], wallColor), // right
-  ];
+  const parts: Quad[] = [];
+  for (let level = 0; level < levels; level += 1) {
+    const y = level * h;
+    parts.push(
+      quad([[-w, y, -d], [w, y, -d], [w, y, d], [-w, y, d]], [0, 1, 0], floorColor),
+      quad([[-w, y, -d], [-w, y + h, -d], [w, y + h, -d], [w, y, -d]], [0, 0, 1], wallColor),
+      quad([[w, y, d], [w, y + h, d], [-w, y + h, d], [-w, y, d]], [0, 0, -1], wallColor),
+      quad([[-w, y, d], [-w, y + h, d], [-w, y + h, -d], [-w, y, -d]], [1, 0, 0], wallColor),
+      quad([[w, y, -d], [w, y + h, -d], [w, y + h, d], [w, y, d]], [-1, 0, 0], wallColor)
+    );
+  }
 
   const bufferViews: { buffer: number; byteOffset: number; byteLength: number; target: number }[] = [];
   const accessors: Record<string, unknown>[] = [];

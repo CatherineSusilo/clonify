@@ -9,6 +9,7 @@ export type RoomSummary = {
   id: string;
   name: string;
   category: string | null;
+  floor: number;
   photoKeys: string;
   panoramaKey: string | null;
   connections: string;
@@ -26,6 +27,7 @@ export function RoomsPanel({
   const [activeRoom, setActiveRoom] = useState<RoomSummary | null>(null);
   const [panoramaUrl, setPanoramaUrl] = useState<string | null>(null);
   const [newRoomName, setNewRoomName] = useState("");
+  const [newRoomFloor, setNewRoomFloor] = useState(1);
   const [addingRoom, setAddingRoom] = useState(false);
   const [roomError, setRoomError] = useState<string | null>(null);
   const [connectingRoomId, setConnectingRoomId] = useState<string | null>(null);
@@ -51,7 +53,7 @@ export function RoomsPanel({
     const res = await fetch(`/api/scans/${scanId}/rooms`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: newRoomName.trim() }),
+      body: JSON.stringify({ name: newRoomName.trim(), floor: newRoomFloor }),
     });
     const data = await res.json();
     setAddingRoom(false);
@@ -90,7 +92,7 @@ export function RoomsPanel({
             <li key={room.id} className={onRoute ? "bg-blueprint-light/10" : undefined}>
               <div className="flex items-center justify-between gap-3 py-3">
                 <div>
-                  <p className="font-medium">{room.name}</p>
+                  <p className="font-medium">{room.name} <span className="font-mono text-xs text-muted">L{room.floor}</span></p>
                   <p className="text-xs text-muted">
                     {photoCount > 0 ? `${photoCount} photo(s)` : "Not scanned yet"}
                     {room.panoramaKey ? " · 360° available" : ""}
@@ -159,6 +161,15 @@ export function RoomsPanel({
           onChange={(e) => setNewRoomName(e.target.value)}
           placeholder="Add a room (e.g. Basement)"
           className="flex-1 border border-line bg-ink px-3 py-2 text-sm focus:border-blueprint-light focus:outline-none"
+        />
+        <input
+          type="number"
+          min="1"
+          max="99"
+          aria-label="Floor"
+          value={newRoomFloor}
+          onChange={(e) => setNewRoomFloor(Math.max(1, Number(e.target.value) || 1))}
+          className="w-16 border border-line bg-ink px-2 py-2 text-sm"
         />
         <button
           type="submit"

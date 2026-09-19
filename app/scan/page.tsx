@@ -13,6 +13,7 @@ export default function ScanPage() {
   const [loading, setLoading] = useState(true);
   const [address, setAddress] = useState({ street: "", city: "", state: "", country: "" });
   const [placeTitle, setPlaceTitle] = useState("");
+  const [floorCount, setFloorCount] = useState(1);
   const [metadata, setMetadata] = useState<Record<string, string>>({});
   const [photos, setPhotos] = useState<File[]>([]);
   const [panorama, setPanorama] = useState<File | null>(null);
@@ -51,6 +52,7 @@ export default function ScanPage() {
 
     const form = new FormData();
     form.set("placeTitle", placeTitle);
+    form.set("floorCount", String(floorCount));
     form.set("street", address.street);
     form.set("city", address.city);
     form.set("state", address.state);
@@ -89,9 +91,24 @@ export default function ScanPage() {
             onChange={(e) => setPlaceTitle(e.target.value)}
           />
           <p className="text-xs text-muted">
-            If it has a name, we'll search the open web for real photos of it
+            We&apos;ll search open, licensed sources for full-size indoor photos only
             to help build a fuller 3D reconstruction.
           </p>
+        </fieldset>
+
+        <fieldset>
+          <legend className="mb-2 text-sm text-muted">Levels to capture</legend>
+          <div className="flex items-center gap-3">
+            <input
+              type="number"
+              min="1"
+              max="99"
+              value={floorCount}
+              onChange={(event) => setFloorCount(Math.max(1, Math.min(99, Number(event.target.value) || 1)))}
+              className="w-24 border border-line bg-ink-soft px-4 py-2.5 focus:border-blueprint-light focus:outline-none"
+            />
+            <p className="text-xs text-muted">We&apos;ll create a floor-aware capture checklist and separate navigation maps for every level.</p>
+          </div>
         </fieldset>
 
         <fieldset className="space-y-4">

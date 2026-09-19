@@ -5,9 +5,8 @@ import { uploadScanPhoto, uploadScanPanorama } from "@/lib/storage";
 import { getPlanLimits, isAtLimit } from "@/lib/plans";
 import { geocodeAddress } from "@/lib/geocode";
 import { findPublicBuildingFootprint } from "@/lib/osmBuilding";
-import { findBuildingPhotos } from "@/lib/wikimedia";
 import { analyzeBlueprint } from "@/lib/blueprintAnalysis";
-import { searchPlaceImages } from "@/lib/imageSearch";
+import { searchInteriorPlaceImages } from "@/lib/imageSearch";
 import { enqueueScanReconstruction } from "@/lib/queue";
 import { ROLES } from "@/lib/roles";
 
@@ -54,6 +53,8 @@ export async function POST(request: Request) {
 
   const form = await request.formData();
   const placeTitle = String(form.get("placeTitle") ?? "").trim();
+  const requestedFloorCount = Number.parseInt(String(form.get("floorCount") ?? "1"), 10);
+  const floorCount = Number.isFinite(requestedFloorCount) ? Math.max(1, Math.min(99, requestedFloorCount)) : 1;
   const street = String(form.get("street") ?? "");
   const city = String(form.get("city") ?? "");
   const state = String(form.get("state") ?? "");
@@ -79,6 +80,7 @@ export async function POST(request: Request) {
       state,
       country,
       metadata: metadataRaw,
+      floorCount,
       photoKeys: "[]",
       status: "processing",
     },
@@ -94,7 +96,6 @@ export async function POST(request: Request) {
     try {
       const footprint = await findPublicBuildingFootprint(geo.lat, geo.lng);
       if (footprint) {
-        const buildingPhotos = await findBuildingPhotos(footprint.tags, 6);
         // Clean up the raw OSM-traced outline (jagged, near-collinear
         // points) via Douglas-Peucker simplification before using it.
         const analysis = analyzeBlueprint(footprint.footprint);
@@ -107,8 +108,6 @@ export async function POST(request: Request) {
             areaSquareMeters: analysis.areaSquareMeters,
             cornerCount: analysis.cornerCount,
           },
-          photos: buildingPhotos,
-          photo: buildingPhotos[0] ?? null,
         });
       }
     } catch (err) {
@@ -119,14 +118,14 @@ export async function POST(request: Request) {
     }
   }
 
-  // Once we have a name for the place, search the open web for real photos
-  // of it — gives 3D reconstruction more to work with than whatever the
-  // user manages to photograph themselves, closer to how the place
-  // actually looks (or was designed) than a single angle can show.
+  // Aggregate original-size, freely licensed *indoor* references for the
+  // place or address. Exterior building photos are deliberately not used to
+  // fabricate a private interior environment.
   let referenceImages: string = "[]";
-  if (placeTitle) {
+  const placeQuery = placeTitle || [street, city, state, country].filter(Boolean).join(", ");
+  if (placeQuery) {
     try {
-      const images = await searchPlaceImages(placeTitle, 8);
+      const images = await searchInteriorPlaceImages(placeQuery, 8);
       referenceImages = JSON.stringify(images);
     } catch (err) {
       console.warn(

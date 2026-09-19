@@ -9,6 +9,7 @@ type ModelViewerProps = DetailedHTMLProps<
     "shadow-intensity"?: string;
     exposure?: string;
     ar?: boolean;
+    "ar-modes"?: string;
   },
   HTMLElement
 >;

@@ -50,7 +50,7 @@ export function AccessibilityPanel({ scanId }: { scanId: string }) {
                 className={clsx("flex justify-between py-2", fail && "text-danger")}
               >
                 <span>{r.label}</span>
-                <span className="font-mono">{r.slopePercent.toFixed(1)}° slope</span>
+                <span className="font-mono">{r.slopePercent.toFixed(1)}% slope</span>
               </li>
             );
           })}

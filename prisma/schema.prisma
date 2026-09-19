@@ -60,6 +60,7 @@ model Scan {
   lat               Float?
   lng               Float?
   metadata          String // JSON string of role-specific fields
+  floorCount        Int        @default(1) // Number of levels included in this capture
   photoKeys         String // JSON string array of S3 object keys
   panoramaKey       String? // S3 object key for an optional equirectangular (360°) photo, preferred as the reconstruction source
   referenceImages   String     @default("[]") // JSON array of {url,title,license,attribution,source} found by searching placeTitle online
@@ -81,11 +82,14 @@ model Room {
   scan         Scan     @relation(fields: [scanId], references: [id], onDelete: Cascade)
   name         String
   category     String?
+  floor        Int      @default(1) // 1 = ground/main level; captured rooms retain their level
   photoKeys    String   @default("[]") // JSON string array of S3 object keys
   panoramaKey  String? // S3 object key for an equirectangular (360°) photo
   connections  String   @default("[]") // JSON string array of adjacent Room ids, for room-to-room navigation
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  @@index([scanId, floor])
 }
 
 model Subscription {

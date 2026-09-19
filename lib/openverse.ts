@@ -6,6 +6,8 @@ export type OpenverseImage = {
   title: string;
   license: string;
   attribution: string;
+  width?: number;
+  height?: number;
 };
 
 const OPENVERSE_API = "https://api.openverse.org/v1/images/";
@@ -22,12 +24,16 @@ export async function searchOpenverseImages(query: string, limit = 6): Promise<O
       license: string;
       license_version?: string;
       creator?: string;
+      width?: number;
+      height?: number;
     }[];
     return results.map((r) => ({
       url: r.url,
       title: r.title || "Untitled",
       license: `CC ${r.license.toUpperCase()}${r.license_version ? ` ${r.license_version}` : ""}`,
       attribution: r.creator || "Openverse contributor",
+      width: r.width,
+      height: r.height,
     }));
   } catch {
     return [];

@@ -9,8 +9,18 @@ import { RealEstatePanel } from "@/components/panels/RealEstatePanel";
 import { DisasterReliefPanel } from "@/components/panels/DisasterReliefPanel";
 import { AccessibilityPanel } from "@/components/panels/AccessibilityPanel";
 import { MepPanel } from "@/components/panels/MepPanel";
+import { IndoorNavigationPanel } from "@/components/IndoorNavigationPanel";
+import { RealEstateShowcase } from "@/components/RealEstateShowcase";
 
-type ReferenceImage = { url: string; title: string; license: string; attribution: string; source: string };
+type ReferenceImage = {
+  url: string;
+  title: string;
+  license: string;
+  attribution: string;
+  source: string;
+  width?: number;
+  height?: number;
+};
 
 type Scan = {
   id: string;
@@ -108,6 +118,13 @@ export default function ViewerPage({ params }: { params: Promise<{ id: string }>
         </div>
       </header>
 
+      {scan.role === "REAL_ESTATE" && (
+        <RealEstateShowcase
+          modelUrl={scan.modelUrl ?? `/api/scans/${scan.id}/model`}
+          placeName={scan.placeTitle || `${scan.street}, ${scan.city}`}
+        />
+      )}
+
       <div className="grid flex-1 gap-4 p-4 lg:grid-cols-2">
         <div className="flex flex-col gap-2">
           <div className="overflow-hidden border border-line bg-black">
@@ -137,7 +154,7 @@ export default function ViewerPage({ params }: { params: Promise<{ id: string }>
           {referenceImages.length > 0 && (
             <div className="border border-line bg-ink-soft p-3 text-xs text-muted">
               <p className="mb-1.5">
-                {referenceImages.length} photo(s) found online for &ldquo;{scan.placeTitle}&rdquo; — used to
+                {referenceImages.length} full-size indoor reference photo(s) found for &ldquo;{scan.placeTitle || `${scan.street}, ${scan.city}`}&rdquo; — used to
                 help build the 3D reconstruction:
               </p>
               <div className="flex flex-wrap gap-1.5">
@@ -160,6 +177,7 @@ export default function ViewerPage({ params }: { params: Promise<{ id: string }>
           <div className="min-h-[280px]">
             <FloorPlanPanel lat={scan.lat} lng={scan.lng} building={building} />
           </div>
+          <IndoorNavigationPanel rooms={scan.rooms} />
           <RoomsPanel scanId={scan.id} rooms={scan.rooms} onRoomsChanged={loadScan} />
         </div>
       </div>

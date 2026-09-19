@@ -4,16 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 
-type ReferencePhoto = { url: string; title: string; license: string; attribution: string };
-
 export type BuildingFootprint = {
   provider: string;
   attribution: string;
   license: string;
   tags: Record<string, string>;
   footprint: { lat: number; lng: number }[];
-  photo?: ReferencePhoto | null;
-  photos?: ReferencePhoto[];
   analysis?: {
     originalPointCount: number;
     simplifiedPointCount: number;
@@ -63,6 +59,20 @@ function footprintToGeojson(building: BuildingFootprint): GeoJSON.FeatureCollect
   };
 }
 
+function approachSide(lat: number, lng: number, building: BuildingFootprint) {
+  const points = building.footprint;
+  if (!points.length) return "Unknown side";
+  const center = points.reduce(
+    (total, point) => ({ lat: total.lat + point.lat / points.length, lng: total.lng + point.lng / points.length }),
+    { lat: 0, lng: 0 }
+  );
+  const north = lat - center.lat;
+  const east = (lng - center.lng) * Math.cos((center.lat * Math.PI) / 180);
+  const angle = (Math.atan2(east, north) * 180) / Math.PI;
+  const labels = ["North", "North-east", "East", "South-east", "South", "South-west", "West", "North-west"];
+  return labels[(Math.round(angle / 45) + 8) % 8];
+}
+
 export function FloorPlanPanel({
   lat,
   lng,
@@ -73,12 +83,17 @@ export function FloorPlanPanel({
   building?: BuildingFootprint | null;
 }) {
   const mapContainer = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<maplibregl.Map | null>(null);
+  const watchId = useRef<number | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
   const [positioning, setPositioning] = useState<PositioningResult | null>(null);
   const [positioningStatus, setPositioningStatus] = useState<"loading" | "ready" | "error">(
     "loading"
   );
   const [positioningError, setPositioningError] = useState<string | null>(null);
+  const [tracking, setTracking] = useState(false);
+  const [trackingStatus, setTrackingStatus] = useState("GPS motion tracking is off.");
+  const [currentSide, setCurrentSide] = useState<string | null>(null);
 
   const centerLat = lat ?? 43.6532;
   const centerLng = lng ?? -79.3832;
@@ -98,6 +113,7 @@ export function FloorPlanPanel({
       pitch: 55,
       bearing: -17,
     });
+    mapRef.current = map;
 
     map.on("error", (e) => {
       setMapError(e.error?.message ?? "Failed to load map tiles");
@@ -144,6 +160,25 @@ export function FloorPlanPanel({
           },
         });
 
+        map.addSource("motion-track", {
+          type: "geojson",
+          data: { type: "FeatureCollection", features: [] },
+        });
+        map.addLayer({
+          id: "motion-track-line",
+          type: "line",
+          source: "motion-track",
+          filter: ["==", ["geometry-type"], "LineString"],
+          paint: { "line-color": "#ffcc4d", "line-width": 4, "line-opacity": 0.9 },
+        });
+        map.addLayer({
+          id: "motion-track-point",
+          type: "circle",
+          source: "motion-track",
+          filter: ["==", ["geometry-type"], "Point"],
+          paint: { "circle-color": "#ffcc4d", "circle-radius": 7, "circle-stroke-color": "#060c07", "circle-stroke-width": 2 },
+        });
+
         new maplibregl.Marker({ color: "#ffcc4d" })
           .setLngLat([centerLng, centerLat])
           .addTo(map);
@@ -154,6 +189,9 @@ export function FloorPlanPanel({
 
     return () => {
       resizeObserver.disconnect();
+      if (watchId.current != null) navigator.geolocation?.clearWatch(watchId.current);
+      watchId.current = null;
+      mapRef.current = null;
       map.remove();
     };
   }, [centerLat, centerLng, building]);
@@ -177,9 +215,62 @@ export function FloorPlanPanel({
       });
   }, [lat, lng]);
 
+  function toggleMotionTracking() {
+    if (tracking) {
+      if (watchId.current != null) navigator.geolocation.clearWatch(watchId.current);
+      watchId.current = null;
+      setTracking(false);
+      setTrackingStatus("GPS motion tracking is paused.");
+      return;
+    }
+    if (!("geolocation" in navigator)) {
+      setTrackingStatus("This device does not provide GPS location.");
+      return;
+    }
+    const trace: [number, number][] = [];
+    setTrackingStatus("Requesting precise location permission…");
+    watchId.current = navigator.geolocation.watchPosition(
+      (position) => {
+        const point: [number, number] = [position.coords.longitude, position.coords.latitude];
+        trace.push(point);
+        if (trace.length > 60) trace.shift();
+        const source = mapRef.current?.getSource("motion-track") as maplibregl.GeoJSONSource | undefined;
+        source?.setData({
+          type: "FeatureCollection",
+          features: [
+            ...(trace.length > 1 ? [{ type: "Feature" as const, properties: {}, geometry: { type: "LineString" as const, coordinates: trace } }] : []),
+            { type: "Feature" as const, properties: {}, geometry: { type: "Point" as const, coordinates: point } },
+          ],
+        });
+        const side = building ? approachSide(position.coords.latitude, position.coords.longitude, building) : null;
+        setCurrentSide(side);
+        setTrackingStatus(
+          side
+            ? `Tracking ${trace.length} fixes · approaching the ${side.toLowerCase()} side.`
+            : `Tracking ${trace.length} fixes · add a building outline to identify the approach side.`
+        );
+        setTracking(true);
+      },
+      (error) => {
+        setTracking(false);
+        setTrackingStatus(error.code === error.PERMISSION_DENIED ? "Location permission was not granted." : "GPS signal is currently unavailable.");
+      },
+      { enableHighAccuracy: true, maximumAge: 3000, timeout: 12000 }
+    );
+  }
+
   return (
     <div className="flex h-full flex-col overflow-hidden border border-line bg-ink-soft">
       <div ref={mapContainer} className="min-h-[280px] flex-1" />
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line px-3 py-2 text-xs">
+        <div>
+          <p className={tracking ? "text-signal" : "text-muted"}>{trackingStatus}</p>
+          {currentSide && <p className="mt-0.5 text-blueprint-light">Map match: {currentSide} building approach</p>}
+        </div>
+        <button type="button" onClick={toggleMotionTracking} className="border border-blueprint-light px-2.5 py-1.5 text-ink-text hover:bg-blueprint-light/10">
+          {tracking ? "Pause GPS" : "Track my approach"}
+        </button>
+      </div>
       {mapError && (
         <p className="border-t border-line px-3 py-2 text-xs text-amber">
           Map tiles unavailable: {mapError}
@@ -194,26 +285,6 @@ export function FloorPlanPanel({
                 building.analysis.areaSquareMeters
               )}m² footprint`}
           </p>
-          {building.photos && building.photos.length > 0 && (
-            <div className="mt-2">
-              <p className="mb-1">
-                {building.photos.length} reference photo(s) found automatically — fed into 3D
-                reconstruction:
-              </p>
-              <div className="flex gap-1.5">
-                {building.photos.slice(0, 6).map((photo, i) => (
-                  // eslint-disable-next-line @next/next/no-img-element -- external Commons URLs, not worth an image loader config for small attribution thumbnails
-                  <img
-                    key={i}
-                    src={photo.url}
-                    alt={photo.title}
-                    title={`${photo.attribution}, ${photo.license}`}
-                    className="h-12 w-16 border border-line object-cover"
-                  />
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       )}
       <div className="border-t border-line px-3 py-2 text-xs">

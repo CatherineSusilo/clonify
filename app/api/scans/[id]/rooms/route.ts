@@ -7,6 +7,7 @@ import { getPlanLimits, isAtLimit } from "@/lib/plans";
 const bodySchema = z.object({
   name: z.string().min(1).max(80),
   category: z.string().max(40).optional(),
+  floor: z.number().int().min(1).max(99).default(1),
 });
 
 export async function POST(
@@ -38,7 +39,7 @@ export async function POST(
   }
 
   const room = await prisma.room.create({
-    data: { scanId: id, name: parsed.data.name, category: parsed.data.category },
+    data: { scanId: id, name: parsed.data.name, category: parsed.data.category, floor: parsed.data.floor },
   });
   return NextResponse.json({ room }, { status: 201 });
 }

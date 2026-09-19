@@ -47,13 +47,14 @@ export async function GET(
     `Address: ${scan.street}, ${scan.city}, ${scan.state} ${scan.country}`,
     `Coordinates: ${scan.lat ?? "n/a"}, ${scan.lng ?? "n/a"}`,
     `Status: ${scan.status}`,
+    `Levels captured: ${scan.floorCount}`,
     `Generated: ${new Date().toLocaleString()}`,
     "",
     "Metadata:",
     ...Object.entries(JSON.parse(scan.metadata || "{}")).map(([k, v]) => `  ${k}: ${v}`),
     "",
     `Rooms (${scan.rooms.length}):`,
-    ...scan.rooms.map((room) => `  ${room.name}${room.category ? ` (${room.category})` : ""}`),
+    ...scan.rooms.map((room) => `  Level ${room.floor}: ${room.name}${room.category ? ` (${room.category})` : ""}`),
   ];
 
   let y = 630;

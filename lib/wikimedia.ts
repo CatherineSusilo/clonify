@@ -9,6 +9,8 @@ export type CommonsImage = {
   title: string;
   license: string;
   attribution: string;
+  width?: number;
+  height?: number;
 };
 
 const COMMONS_API = "https://commons.wikimedia.org/w/api.php";
@@ -23,7 +25,7 @@ async function fetchCommonsFileInfo(fileTitle: string): Promise<CommonsImage | n
   const data = await res.json();
   const pages = data.query?.pages ?? {};
   const page = Object.values(pages)[0] as
-    | { imageinfo?: { url: string; extmetadata?: Record<string, { value: string }> }[] }
+    | { imageinfo?: { url: string; width?: number; height?: number; extmetadata?: Record<string, { value: string }> }[] }
     | undefined;
   const info = page?.imageinfo?.[0];
   if (!info?.url) return null;
@@ -33,6 +35,8 @@ async function fetchCommonsFileInfo(fileTitle: string): Promise<CommonsImage | n
     title: fileTitle,
     license: info.extmetadata?.LicenseShortName?.value ?? "See Wikimedia Commons for license",
     attribution: info.extmetadata?.Artist?.value?.replace(/<[^>]+>/g, "") ?? "Wikimedia Commons contributors",
+    width: info.width,
+    height: info.height,
   };
 }
 

@@ -28,10 +28,10 @@ export default async function Home() {
               {primaryLabel}
             </Link>
             <Link
-              href="/pricing"
+              href="/demo"
               className="border border-line px-6 py-3 font-medium text-muted hover:border-muted hover:text-ink-text"
             >
-              See pricing
+              Explore the demo
             </Link>
           </div>
         </div>

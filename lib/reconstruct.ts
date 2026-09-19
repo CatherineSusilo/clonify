@@ -4,7 +4,7 @@ import type { RoleKey } from "./roles";
 import { downloadPhoto } from "./storage";
 import { reconstructWithTrellis, type SourceImage } from "./trellis";
 
-const MAX_SOURCE_IMAGES = 8;
+const MAX_SOURCE_IMAGES = 24;
 
 async function downloadRemoteImages(
   urlList: { url: string; title: string }[],
@@ -26,12 +26,10 @@ async function downloadRemoteImages(
 }
 
 /** Gathers every real photo available for this scan — the user's own
- * panorama and overview photos, freely-licensed reference photos
- * auto-fetched from Wikimedia Commons for a public building, and any
- * images found by searching the place's name online — so TRELLIS's
- * multi-image mode has as much to work with as possible, closer to how the
- * place actually looks (or was designed) than any single photo could show. */
-async function gatherSourceImages(scan: {
+ * panorama and overview photos plus the largest freely-licensed interior
+ * references found for the place/address. Exterior map/building photos are
+ * intentionally excluded: they cannot faithfully describe an indoor space. */
+async function gatherSourceImages(scanId: string, scan: {
   panoramaKey: string | null;
   photoKeys: string;
   blueprintSource: string | null;
@@ -51,7 +49,8 @@ async function gatherSourceImages(scan: {
     (k) => !k.startsWith("local-fallback/")
   );
   for (const key of photoKeys) {
-    if (images.length >= MAX_SOURCE_IMAGES) break;
+    // Reserve most of the multi-image budget for room captures across floors.
+    if (images.length >= 5) break;
     try {
       images.push({ bytes: await downloadPhoto(key), filename: key.split("/").pop() ?? "photo.jpg" });
     } catch {
@@ -59,23 +58,39 @@ async function gatherSourceImages(scan: {
     }
   }
 
+  // Room captures are the authoritative interior record. Order by level so
+  // every floor contributes before later, repeated captures consume the budget.
+  const rooms = await prisma.room.findMany({ where: { scanId }, orderBy: [{ floor: "asc" }, { createdAt: "asc" }] });
+  const roomsByFloor = new Map<number, typeof rooms>();
+  for (const room of rooms) roomsByFloor.set(room.floor, [...(roomsByFloor.get(room.floor) ?? []), room]);
+  const floorQueues = [...roomsByFloor.values()].map((floorRooms) => [...floorRooms]);
+  while (images.length < MAX_SOURCE_IMAGES && floorQueues.some((queue) => queue.length > 0)) {
+    for (const queue of floorQueues) {
+      const room = queue.shift();
+      if (!room || images.length >= MAX_SOURCE_IMAGES) continue;
+      if (room.panoramaKey) {
+        try {
+          images.push({ bytes: await downloadPhoto(room.panoramaKey), filename: `level-${room.floor}-${room.name}-panorama.jpg` });
+          if (images.length >= MAX_SOURCE_IMAGES) continue;
+        } catch { /* continue with regular photos */ }
+      }
+      for (const key of JSON.parse(room.photoKeys || "[]") as string[]) {
+        if (images.length >= MAX_SOURCE_IMAGES) break;
+        try {
+          images.push({ bytes: await downloadPhoto(key), filename: `level-${room.floor}-${key.split("/").pop() ?? "room.jpg"}` });
+        } catch { /* skip unavailable room asset */ }
+      }
+    }
+  }
+
+  // Only use open, indoor references to fill the remaining budget after each
+  // captured floor has had the opportunity to contribute its own evidence.
   if (images.length < MAX_SOURCE_IMAGES) {
     try {
       const referenceImages = JSON.parse(scan.referenceImages || "[]") as { url: string; title: string }[];
       images.push(...(await downloadRemoteImages(referenceImages, MAX_SOURCE_IMAGES - images.length)));
     } catch {
-      // no usable place-search photos — fine, proceed with what we have
-    }
-  }
-
-  if (images.length < MAX_SOURCE_IMAGES && scan.blueprintSource) {
-    try {
-      const { photos } = JSON.parse(scan.blueprintSource) as {
-        photos?: { url: string; title: string }[];
-      };
-      images.push(...(await downloadRemoteImages(photos ?? [], MAX_SOURCE_IMAGES - images.length)));
-    } catch {
-      // no usable blueprint photos — fine, proceed with what we have
+      // no usable place-search photos — fine, proceed with captured evidence
     }
   }
 
@@ -104,7 +119,7 @@ async function reconstructScanInner(scanId: string) {
   // when it's null, instead of an unrelated placeholder model.
   let modelUrl: string | null = null;
 
-  const sourceImages = await gatherSourceImages(scan);
+  const sourceImages = await gatherSourceImages(scanId, scan);
   if (sourceImages.length > 0) {
     try {
       modelUrl = await reconstructWithTrellis(sourceImages);
@@ -125,7 +140,9 @@ async function reconstructScanInner(scanId: string) {
   if (existingRooms === 0) {
     const defaults = DEFAULT_ROOMS[scan.role as RoleKey] ?? [];
     await prisma.room.createMany({
-      data: defaults.map((room) => ({ scanId, name: room.name, category: room.category })),
+      data: Array.from({ length: scan.floorCount }, (_, index) =>
+        defaults.map((room) => ({ scanId, name: room.name, category: room.category, floor: index + 1 }))
+      ).flat(),
     });
   }
 }

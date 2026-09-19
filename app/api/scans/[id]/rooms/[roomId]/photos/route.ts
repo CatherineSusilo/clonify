@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { uploadRoomPhoto, uploadRoomPanorama, getPhotoUrl } from "@/lib/storage";
+import { enqueueScanReconstruction } from "@/lib/queue";
 
 export async function GET(
   _req: Request,
@@ -68,6 +69,10 @@ export async function POST(
       panoramaKey,
     },
   });
+
+  // A room upload is new geometry/texture evidence for this floor. Rebuild in
+  // the background so the 3D tour evolves as all levels are captured.
+  await enqueueScanReconstruction(id);
 
   return NextResponse.json({ room: updated });
 }

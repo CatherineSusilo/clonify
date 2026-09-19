@@ -1,4 +1,4 @@
-export type RoomNode = { id: string; name: string; connections: string };
+export type RoomNode = { id: string; name: string; floor: number; connections: string };
 
 /** Breadth-first search over the room adjacency graph (Room.connections).
  * Returns the room-to-room route as an ordered list, or null if the two
