@@ -1,12 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { findRoute } from "@/lib/pathfinding";
 import type { RoomSummary } from "./RoomsPanel";
 
 type Props = {
   rooms: RoomSummary[];
   onSelectRoom?: (roomId: string) => void;
+  open?: boolean;
+  onClose?: () => void;
+  heading?: number | null;
+  trackingConfidence?: "available" | "permission-required" | "unavailable";
+  motionControl?: ReactNode;
 };
 
 const palette = ["#9cffb4", "#72e6ff", "#d1a7ff", "#ffcb6b", "#ff9e9e", "#8de9d0"];
@@ -21,7 +26,7 @@ function roomBounds(index: number, count: number) {
   return { x: 6 + column * width, y: 14 + row * height, width: width - 3, height: height - 3 };
 }
 
-export function IndoorNavigationPanel({ rooms, onSelectRoom }: Props) {
+export function IndoorNavigationPanel({ rooms, onSelectRoom, open = true, onClose, heading = null, trackingConfidence = "unavailable", motionControl }: Props) {
   const [from, setFrom] = useState(rooms[0]?.id ?? "");
   const [to, setTo] = useState(rooms[rooms.length - 1]?.id ?? "");
   const [mobilityMode, setMobilityMode] = useState(true);
@@ -51,7 +56,7 @@ export function IndoorNavigationPanel({ rooms, onSelectRoom }: Props) {
         : `Continue from ${previous.name} to ${room.name}`;
   }) : [];
 
-  if (rooms.length === 0) return null;
+  if (rooms.length === 0 || !open) return null;
 
   function stopGuidance() {
     if (typeof window !== "undefined") window.speechSynthesis.cancel();
@@ -94,20 +99,14 @@ export function IndoorNavigationPanel({ rooms, onSelectRoom }: Props) {
   }
 
   return (
-    <section className="border border-line bg-ink-soft">
+    <section className="fixed inset-0 z-40 flex items-end bg-black/70 p-0 backdrop-blur-sm sm:items-center sm:justify-center sm:p-6" role="dialog" aria-modal="true" aria-label="Indoor navigation">
+      <div className="max-h-[92svh] w-full overflow-y-auto rounded-t-[2rem] border border-line bg-ink-soft shadow-2xl sm:max-w-5xl sm:rounded-[2rem]">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3">
         <div>
           <p className="font-display text-base font-medium">Indoor wayfinding</p>
           <p className="text-xs text-muted">All captured levels · 2D room graph synced to your walkable 3D model</p>
         </div>
-        <button
-          type="button"
-          aria-pressed={mobilityMode}
-          onClick={() => setMobilityMode((value) => !value)}
-          className={`border px-3 py-1.5 text-xs ${mobilityMode ? "border-blueprint-light bg-blueprint/20 text-blueprint-light" : "border-line text-muted"}`}
-        >
-          {mobilityMode ? "Accessible route on" : "Accessible route off"}
-        </button>
+        <div className="flex items-center gap-2"><span className="text-xs text-muted">{heading == null ? "Motion unavailable" : `${heading}° heading`} · {trackingConfidence}</span>{motionControl}<button type="button" aria-label="Toggle step-free route" title="Toggle step-free route" aria-pressed={mobilityMode} onClick={() => setMobilityMode((value) => !value)} className={`grid h-11 w-11 place-items-center rounded-full border text-lg ${mobilityMode ? "border-blueprint-light bg-blueprint/20 text-blueprint-light" : "border-line text-muted"}`}>♿</button>{onClose && <button type="button" aria-label="Close indoor navigation" onClick={onClose} className="grid h-11 w-11 place-items-center rounded-full text-lg text-muted hover:bg-white/10">×</button>}</div>
       </div>
 
       <div className="grid gap-4 p-4 lg:grid-cols-[1.2fr_.8fr]">
@@ -148,6 +147,7 @@ export function IndoorNavigationPanel({ rooms, onSelectRoom }: Props) {
               return <path key={`${room.id}-${nextRoom.id}`} d={`M ${a.x + a.width / 2} ${a.y + a.height / 2} L ${b.x + b.width / 2} ${b.y + b.height / 2}`} stroke="#ffffff" strokeWidth=".9" strokeDasharray="2 1.5" opacity=".95" />;
             })}
             <circle cx="8" cy="93" r="1.4" fill="#ffcb6b" /><text x="11" y="94" fill="#ffdf97" fontSize="2.7" fontFamily="sans-serif">Entrance</text>
+            <g transform={`rotate(${heading ?? 0} 91 91)`}><path d="M91 84L94 94L91 92L88 94Z" fill="#ffffff" /></g>
           </svg>
         </div>
 
@@ -182,6 +182,7 @@ export function IndoorNavigationPanel({ rooms, onSelectRoom }: Props) {
             {mobilityMode && <p className="mt-1">Verify doorway widths and ramp slopes from the ADA audit before relying on a route.</p>}
           </div>
         </div>
+      </div>
       </div>
     </section>
   );

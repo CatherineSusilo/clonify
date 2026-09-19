@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { applyReconstructionEvent, reconstructionFromMetadata, reconstructionPayload } from "./reconstruction";
+import { normalizeHeading } from "@/components/DeviceMotionHeading";
 
 describe("reconstructionFromMetadata", () => {
   it("creates wall, floor, and depth annotations from scan metadata", () => {
@@ -35,5 +36,12 @@ describe("reconstructionPayload", () => {
     expect(payload.mode).toBe("private-server");
     expect(payload.state.modelUrl).toBe("/api/model.glb");
     expect(JSON.parse(JSON.stringify(payload))).toEqual(payload);
+  });
+});
+
+describe("normalizeHeading", () => {
+  it("wraps device motion headings into compass degrees", () => {
+    expect(normalizeHeading(-12)).toBe(348);
+    expect(normalizeHeading(372)).toBe(12);
   });
 });

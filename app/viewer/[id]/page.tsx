@@ -11,6 +11,8 @@ import { AccessibilityPanel } from "@/components/panels/AccessibilityPanel";
 import { MepPanel } from "@/components/panels/MepPanel";
 import { IndoorNavigationPanel } from "@/components/IndoorNavigationPanel";
 import { RealEstateShowcase } from "@/components/RealEstateShowcase";
+import { ImmersiveModelViewer } from "@/components/ImmersiveModelViewer";
+import { DeviceMotionHeading, type TrackingConfidence } from "@/components/DeviceMotionHeading";
 
 type ReferenceImage = {
   url: string;
@@ -49,6 +51,9 @@ export default function ViewerPage({ params }: { params: Promise<{ id: string }>
   const router = useRouter();
   const [scan, setScan] = useState<Scan | null>(null);
   const [hdExports, setHdExports] = useState(false);
+  const [navigationOpen, setNavigationOpen] = useState(false);
+  const [heading, setHeading] = useState<number | null>(null);
+  const [trackingConfidence, setTrackingConfidence] = useState<TrackingConfidence>("unavailable");
 
   const loadScan = useCallback(async () => {
     const res = await fetch(`/api/scans/${id}`);
@@ -130,29 +135,8 @@ export default function ViewerPage({ params }: { params: Promise<{ id: string }>
 
       <div className="grid flex-1 gap-4 p-4 lg:grid-cols-2">
         <div className="flex flex-col gap-2">
-          <div className="overflow-hidden border border-line bg-black">
-            <model-viewer
-              suppressHydrationWarning
-              src={scan.modelUrl ?? `/api/scans/${scan.id}/model`}
-              alt="3D reconstruction of the scanned space"
-              camera-controls
-              auto-rotate
-              shadow-intensity="1"
-              ar
-              ar-modes="webxr scene-viewer quick-look"
-              style={{ width: "100%", height: "100%", minHeight: "380px" }}
-            >
-              <button
-                slot="ar-button"
-                className="absolute bottom-4 right-4 border border-blueprint-light bg-ink px-3 py-1.5 text-sm text-ink-text"
-              >
-                View in your space (AR)
-              </button>
-            </model-viewer>
-          </div>
-          <p className="text-xs text-muted">
-            Walkable 3D reconstruction, generated from your photos. Open on a phone to view in AR.
-          </p>
+          <ImmersiveModelViewer scanId={scan.id} modelUrl={scan.modelUrl ?? `/api/scans/${scan.id}/model`} onOpenNavigation={() => setNavigationOpen(true)} />
+          <p className="text-xs text-muted">Live reconstruction refines walls, color, depth, floors, and architectural openings as evidence arrives.</p>
 
           {referenceImages.length > 0 && (
             <div className="border border-line bg-ink-soft p-3 text-xs text-muted">
@@ -180,10 +164,11 @@ export default function ViewerPage({ params }: { params: Promise<{ id: string }>
           <div className="min-h-[280px]">
             <FloorPlanPanel lat={scan.lat} lng={scan.lng} building={building} />
           </div>
-          <IndoorNavigationPanel rooms={scan.rooms} />
           <RoomsPanel scanId={scan.id} rooms={scan.rooms} onRoomsChanged={loadScan} />
         </div>
       </div>
+
+      <IndoorNavigationPanel rooms={scan.rooms} open={navigationOpen} onClose={() => setNavigationOpen(false)} heading={heading} trackingConfidence={trackingConfidence} motionControl={navigationOpen ? <DeviceMotionHeading onHeading={setHeading} onConfidence={setTrackingConfidence} /> : null} />
 
       <div className="border-t border-line p-6">
         <Panel scanId={scan.id} />
