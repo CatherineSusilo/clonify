@@ -10,6 +10,8 @@ import { DisasterReliefPanel } from "@/components/panels/DisasterReliefPanel";
 import { AccessibilityPanel } from "@/components/panels/AccessibilityPanel";
 import { MepPanel } from "@/components/panels/MepPanel";
 
+type ReferenceImage = { url: string; title: string; license: string; attribution: string; source: string };
+
 type Scan = {
   id: string;
   role: RoleKey;
@@ -19,7 +21,9 @@ type Scan = {
   lng: number | null;
   street: string;
   city: string;
+  placeTitle: string | null;
   blueprintSource: string | null;
+  referenceImages: string;
   rooms: RoomSummary[];
 };
 
@@ -62,6 +66,7 @@ export default function ViewerPage({ params }: { params: Promise<{ id: string }>
   const building: BuildingFootprint | null = scan.blueprintSource
     ? JSON.parse(scan.blueprintSource)
     : null;
+  const referenceImages: ReferenceImage[] = JSON.parse(scan.referenceImages || "[]");
 
   return (
     <div className="flex flex-1 flex-col">
@@ -97,6 +102,27 @@ export default function ViewerPage({ params }: { params: Promise<{ id: string }>
           <p className="text-xs text-muted">
             Walkable 3D reconstruction, generated from your photos. Open on a phone to view in AR.
           </p>
+
+          {referenceImages.length > 0 && (
+            <div className="border border-line bg-ink-soft p-3 text-xs text-muted">
+              <p className="mb-1.5">
+                {referenceImages.length} photo(s) found online for &ldquo;{scan.placeTitle}&rdquo; — used to
+                help build the 3D reconstruction:
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {referenceImages.map((img, i) => (
+                  // eslint-disable-next-line @next/next/no-img-element -- external URLs from Commons/Openverse, not worth an image loader config for small thumbnails
+                  <img
+                    key={i}
+                    src={img.url}
+                    alt={img.title}
+                    title={`${img.source}: ${img.attribution}, ${img.license}`}
+                    className="h-14 w-20 border border-line object-cover"
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col gap-4">

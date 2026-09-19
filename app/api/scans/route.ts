@@ -6,6 +6,7 @@ import { geocodeAddress } from "@/lib/geocode";
 import { findPublicBuildingFootprint } from "@/lib/osmBuilding";
 import { findBuildingPhotos } from "@/lib/wikimedia";
 import { analyzeBlueprint } from "@/lib/blueprintAnalysis";
+import { searchPlaceImages } from "@/lib/imageSearch";
 import { enqueueScanReconstruction } from "@/lib/queue";
 import { ROLES } from "@/lib/roles";
 
@@ -19,6 +20,7 @@ export async function POST(request: Request) {
   }
 
   const form = await request.formData();
+  const placeTitle = String(form.get("placeTitle") ?? "").trim();
   const street = String(form.get("street") ?? "");
   const city = String(form.get("city") ?? "");
   const state = String(form.get("state") ?? "");
@@ -38,6 +40,7 @@ export async function POST(request: Request) {
     data: {
       userId: user.id,
       role: user.role,
+      placeTitle: placeTitle || null,
       street,
       city,
       state,
@@ -83,6 +86,23 @@ export async function POST(request: Request) {
     }
   }
 
+  // Once we have a name for the place, search the open web for real photos
+  // of it — gives 3D reconstruction more to work with than whatever the
+  // user manages to photograph themselves, closer to how the place
+  // actually looks (or was designed) than a single angle can show.
+  let referenceImages: string = "[]";
+  if (placeTitle) {
+    try {
+      const images = await searchPlaceImages(placeTitle, 8);
+      referenceImages = JSON.stringify(images);
+    } catch (err) {
+      console.warn(
+        `[scans] Place image search failed for scan ${scan.id}:`,
+        err instanceof Error ? err.message : err
+      );
+    }
+  }
+
   const photoKeys: string[] = [];
   for (const photo of photos) {
     try {
@@ -113,6 +133,7 @@ export async function POST(request: Request) {
     data: {
       photoKeys: JSON.stringify(photoKeys),
       panoramaKey,
+      referenceImages,
       lat: geo?.lat,
       lng: geo?.lng,
       blueprintSource,

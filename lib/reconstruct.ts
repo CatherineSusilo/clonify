@@ -3,19 +3,39 @@ import { DEFAULT_ROOMS } from "./defaultRooms";
 import type { RoleKey } from "./roles";
 import { downloadPhoto } from "./storage";
 import { reconstructWithTrellis, type SourceImage } from "./trellis";
-import type { CommonsImage } from "./wikimedia";
 
-const MAX_SOURCE_IMAGES = 6;
+const MAX_SOURCE_IMAGES = 8;
+
+async function downloadRemoteImages(
+  urlList: { url: string; title: string }[],
+  remainingSlots: number
+): Promise<SourceImage[]> {
+  const images: SourceImage[] = [];
+  for (const photo of urlList) {
+    if (images.length >= remainingSlots) break;
+    try {
+      const res = await fetch(photo.url);
+      if (!res.ok) continue;
+      const bytes = Buffer.from(await res.arrayBuffer());
+      images.push({ bytes, filename: photo.title.replace(/^File:/, "") });
+    } catch {
+      continue;
+    }
+  }
+  return images;
+}
 
 /** Gathers every real photo available for this scan — the user's own
- * panorama and overview photos, plus any freely-licensed reference photos
- * auto-fetched from Wikimedia Commons for a public building — so TRELLIS's
+ * panorama and overview photos, freely-licensed reference photos
+ * auto-fetched from Wikimedia Commons for a public building, and any
+ * images found by searching the place's name online — so TRELLIS's
  * multi-image mode has as much to work with as possible, closer to how the
- * building actually looks than any single photo could show. */
+ * place actually looks (or was designed) than any single photo could show. */
 async function gatherSourceImages(scan: {
   panoramaKey: string | null;
   photoKeys: string;
   blueprintSource: string | null;
+  referenceImages: string;
 }): Promise<SourceImage[]> {
   const images: SourceImage[] = [];
 
@@ -39,16 +59,21 @@ async function gatherSourceImages(scan: {
     }
   }
 
+  if (images.length < MAX_SOURCE_IMAGES) {
+    try {
+      const referenceImages = JSON.parse(scan.referenceImages || "[]") as { url: string; title: string }[];
+      images.push(...(await downloadRemoteImages(referenceImages, MAX_SOURCE_IMAGES - images.length)));
+    } catch {
+      // no usable place-search photos — fine, proceed with what we have
+    }
+  }
+
   if (images.length < MAX_SOURCE_IMAGES && scan.blueprintSource) {
     try {
-      const { photos } = JSON.parse(scan.blueprintSource) as { photos?: CommonsImage[] };
-      for (const photo of photos ?? []) {
-        if (images.length >= MAX_SOURCE_IMAGES) break;
-        const res = await fetch(photo.url);
-        if (!res.ok) continue;
-        const bytes = Buffer.from(await res.arrayBuffer());
-        images.push({ bytes, filename: photo.title.replace(/^File:/, "") });
-      }
+      const { photos } = JSON.parse(scan.blueprintSource) as {
+        photos?: { url: string; title: string }[];
+      };
+      images.push(...(await downloadRemoteImages(photos ?? [], MAX_SOURCE_IMAGES - images.length)));
     } catch {
       // no usable blueprint photos — fine, proceed with what we have
     }

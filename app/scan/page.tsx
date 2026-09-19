@@ -12,6 +12,7 @@ export default function ScanPage() {
   const [role, setRole] = useState<RoleKey | null>(null);
   const [loading, setLoading] = useState(true);
   const [address, setAddress] = useState({ street: "", city: "", state: "", country: "" });
+  const [placeTitle, setPlaceTitle] = useState("");
   const [metadata, setMetadata] = useState<Record<string, string>>({});
   const [photos, setPhotos] = useState<File[]>([]);
   const [panorama, setPanorama] = useState<File | null>(null);
@@ -40,6 +41,7 @@ export default function ScanPage() {
 
   function applySuggestion(s: AddressSuggestion) {
     setAddress({ street: s.street, city: s.city, state: s.state, country: s.country });
+    if (s.placeName) setPlaceTitle(s.placeName);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -48,6 +50,7 @@ export default function ScanPage() {
     setError(null);
 
     const form = new FormData();
+    form.set("placeTitle", placeTitle);
     form.set("street", address.street);
     form.set("city", address.city);
     form.set("state", address.state);
@@ -77,6 +80,20 @@ export default function ScanPage() {
       </p>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-8">
+        <fieldset className="space-y-4">
+          <legend className="mb-2 text-sm text-muted">Place name</legend>
+          <input
+            placeholder="e.g. CN Tower, Smith family home, Riverside Apartments"
+            className="w-full border border-line bg-ink-soft px-4 py-2.5 focus:border-blueprint-light focus:outline-none"
+            value={placeTitle}
+            onChange={(e) => setPlaceTitle(e.target.value)}
+          />
+          <p className="text-xs text-muted">
+            If it has a name, we'll search the open web for real photos of it
+            to help build a fuller 3D reconstruction.
+          </p>
+        </fieldset>
+
         <fieldset className="space-y-4">
           <legend className="mb-2 text-sm text-muted">Location</legend>
           <AddressAutocomplete
