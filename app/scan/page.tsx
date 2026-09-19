@@ -17,6 +17,7 @@ export default function ScanPage() {
   const [metadata, setMetadata] = useState<Record<string, string>>({});
   const [photos, setPhotos] = useState<File[]>([]);
   const [panorama, setPanorama] = useState<File | null>(null);
+  const [blueprint, setBlueprint] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -60,6 +61,7 @@ export default function ScanPage() {
     form.set("metadata", JSON.stringify(metadata));
     photos.forEach((p) => form.append("photos", p));
     if (panorama) form.set("panorama", panorama);
+    if (blueprint) form.set("blueprint", blueprint);
 
     try {
       const res = await fetch("/api/scans", { method: "POST", body: form });
@@ -206,6 +208,23 @@ export default function ScanPage() {
             />
             <span className="text-sm text-muted">
               {panorama ? panorama.name : "Choose an equirectangular photo"}
+            </span>
+          </label>
+        </fieldset>
+
+        <fieldset>
+          <legend className="mb-2 text-sm text-muted">
+            Floor plan / blueprint <span className="text-muted/70">(optional — used directly if we can&apos;t find one online)</span>
+          </legend>
+          <label className="flex cursor-pointer flex-col items-center justify-center border border-dashed border-line px-6 py-6 text-center hover:border-muted">
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => setBlueprint(e.target.files?.[0] ?? null)}
+            />
+            <span className="text-sm text-muted">
+              {blueprint ? blueprint.name : "Choose a floor plan image"}
             </span>
           </label>
         </fieldset>

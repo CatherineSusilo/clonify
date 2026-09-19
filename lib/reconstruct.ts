@@ -31,11 +31,23 @@ async function downloadRemoteImages(
  * intentionally excluded: they cannot faithfully describe an indoor space. */
 async function gatherSourceImages(scanId: string, scan: {
   panoramaKey: string | null;
+  blueprintKey: string | null;
   photoKeys: string;
   blueprintSource: string | null;
   referenceImages: string;
 }): Promise<SourceImage[]> {
   const images: SourceImage[] = [];
+
+  // A manually supplied floor plan is the strongest ground truth available
+  // for this space's layout, so it goes first (TRELLIS treats the first
+  // image as primary).
+  if (scan.blueprintKey) {
+    try {
+      images.push({ bytes: await downloadPhoto(scan.blueprintKey), filename: "blueprint.jpg" });
+    } catch {
+      // fall through to other sources
+    }
+  }
 
   if (scan.panoramaKey) {
     try {

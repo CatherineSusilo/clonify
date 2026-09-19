@@ -52,6 +52,11 @@ export function uploadScanPanorama(scanId: string, file: File): Promise<string> 
   return uploadFile(`scans/${scanId}/panorama-${randomUUID()}-${file.name}`, file);
 }
 
+/** Uploads a manually provided floor plan / blueprint image. Returns the object key. */
+export function uploadScanBlueprint(scanId: string, file: File): Promise<string> {
+  return uploadFile(`scans/${scanId}/blueprint-${randomUUID()}-${file.name}`, file);
+}
+
 /** Uploads a photo captured for a specific room. Returns the object key. */
 export function uploadRoomPhoto(
   scanId: string,

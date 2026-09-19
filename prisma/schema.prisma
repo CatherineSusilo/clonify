@@ -63,6 +63,7 @@ model Scan {
   floorCount        Int        @default(1) // Number of levels included in this capture
   photoKeys         String // JSON string array of S3 object keys
   panoramaKey       String? // S3 object key for an optional equirectangular (360°) photo, preferred as the reconstruction source
+  blueprintKey      String? // S3 object key for a manually uploaded floor plan/blueprint, preferred over auto-searched blueprints and photos for image analysis + reconstruction
   referenceImages   String     @default("[]") // JSON array of {url,title,license,attribution,source} found by searching placeTitle online
   status            ScanStatus @default(processing)
   errorMessage      String?

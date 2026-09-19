@@ -6,7 +6,7 @@
  * plain geometry + the glTF binary container format, built by hand. */
 
 type Vec3 = [number, number, number];
-type Quad = { positions: number[]; normals: number[]; indices: number[]; color: Vec3 };
+type Face = { positions: number[]; normals: number[]; indices: number[]; color: Vec3; vertexCount: number };
 
 function hexToRgb(hex: string): Vec3 {
   const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
@@ -15,14 +15,22 @@ function hexToRgb(hex: string): Vec3 {
   return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
 }
 
-/** One quad from 4 corners (wound so `normal` points toward the visible face). */
-function quad(corners: [Vec3, Vec3, Vec3, Vec3], normal: Vec3, color: Vec3): Quad {
+/** One flat N-gon face, fan-triangulated from its first vertex (wound so
+ * `normal` points toward the visible side). A quad is just the n=4 case. */
+function face(corners: Vec3[], normal: Vec3, color: Vec3): Face {
+  const indices: number[] = [];
+  for (let i = 1; i < corners.length - 1; i++) indices.push(0, i, i + 1);
   return {
     positions: corners.flat(),
-    normals: [normal, normal, normal, normal].flat(),
-    indices: [0, 1, 2, 0, 2, 3],
+    normals: corners.map(() => normal).flat(),
+    indices,
     color,
+    vertexCount: corners.length,
   };
+}
+
+function quad(corners: [Vec3, Vec3, Vec3, Vec3], normal: Vec3, color: Vec3): Face {
+  return face(corners, normal, color);
 }
 
 export function buildRoomMockupGlb(options: {
@@ -40,7 +48,7 @@ export function buildRoomMockupGlb(options: {
   const wallColor = hexToRgb(options.wallColorHex ?? "#c9c2b3");
   const floorColor = hexToRgb(options.floorColorHex ?? "#8a7660");
 
-  const parts: Quad[] = [];
+  const parts: Face[] = [];
   for (let level = 0; level < levels; level += 1) {
     const y = level * h;
     parts.push(
@@ -52,6 +60,53 @@ export function buildRoomMockupGlb(options: {
     );
   }
 
+  return buildGlbFromFaces(parts);
+}
+
+/** Extrudes a real 2D footprint polygon (already in flat local meters, e.g.
+ * from blueprintAnalysis.projectToLocalMeters or an OpenCV-detected
+ * contour) into an open-top 3D room: a floor matching the polygon's exact
+ * shape plus one wall quad per polygon edge — the deterministic fallback
+ * used when a real photo-to-3D reconstruction (TRELLIS) isn't available but
+ * an actual floor plan is, so the shown room matches the real layout
+ * instead of a generic box. */
+export function buildBlueprintExtrusionGlb(
+  footprint: { x: number; y: number }[],
+  options: { height?: number; wallColorHex?: string; floorColorHex?: string } = {}
+): Buffer {
+  if (footprint.length < 3) throw new Error("Footprint needs at least 3 points to extrude");
+
+  const h = options.height ?? 2.7;
+  const wallColor = hexToRgb(options.wallColorHex ?? "#c9c2b3");
+  const floorColor = hexToRgb(options.floorColorHex ?? "#8a7660");
+  // glTF is Y-up; the footprint's 2D (x, y) plane maps to 3D (x, 0, z).
+  const ring = footprint.map(({ x, y }): Vec3 => [x, 0, y]);
+
+  const parts: Face[] = [face(ring, [0, 1, 0], floorColor)];
+  for (let i = 0; i < ring.length; i++) {
+    const [x1, , z1] = ring[i];
+    const [x2, , z2] = ring[(i + 1) % ring.length];
+    // Outward-facing normal, perpendicular to the edge in the XZ plane.
+    const normal: Vec3 = [z2 - z1, 0, -(x2 - x1)];
+    const len = Math.hypot(normal[0], normal[2]) || 1;
+    parts.push(
+      quad(
+        [
+          [x1, 0, z1],
+          [x2, 0, z2],
+          [x2, h, z2],
+          [x1, h, z1],
+        ],
+        [normal[0] / len, 0, normal[2] / len],
+        wallColor
+      )
+    );
+  }
+
+  return buildGlbFromFaces(parts);
+}
+
+function buildGlbFromFaces(parts: Face[]): Buffer {
   const bufferViews: { buffer: number; byteOffset: number; byteLength: number; target: number }[] = [];
   const accessors: Record<string, unknown>[] = [];
   const chunks: Buffer[] = [];
@@ -78,13 +133,13 @@ export function buildRoomMockupGlb(options: {
   const primitives = parts.map((part, i) => {
     const posBuf = Buffer.from(new Float32Array(part.positions).buffer);
     const posViewIdx = pushChunk(posBuf, 34962);
-    const xs = [0, 3, 6, 9].map((o) => part.positions[o]);
-    const ys = [1, 4, 7, 10].map((o) => part.positions[o]);
-    const zs = [2, 5, 8, 11].map((o) => part.positions[o]);
+    const xs = part.positions.filter((_, i) => i % 3 === 0);
+    const ys = part.positions.filter((_, i) => i % 3 === 1);
+    const zs = part.positions.filter((_, i) => i % 3 === 2);
     accessors.push({
       bufferView: posViewIdx,
       componentType: 5126,
-      count: 4,
+      count: part.vertexCount,
       type: "VEC3",
       min: [Math.min(...xs), Math.min(...ys), Math.min(...zs)],
       max: [Math.max(...xs), Math.max(...ys), Math.max(...zs)],
@@ -93,7 +148,7 @@ export function buildRoomMockupGlb(options: {
 
     const normBuf = Buffer.from(new Float32Array(part.normals).buffer);
     const normViewIdx = pushChunk(normBuf, 34962);
-    accessors.push({ bufferView: normViewIdx, componentType: 5126, count: 4, type: "VEC3" });
+    accessors.push({ bufferView: normViewIdx, componentType: 5126, count: part.vertexCount, type: "VEC3" });
     const normalAccessor = accessors.length - 1;
 
     const idxBuf = Buffer.from(new Uint16Array(part.indices).buffer);

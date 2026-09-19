@@ -19,6 +19,28 @@ export type ImageAnalysis = {
   largestContourPoints: { x: number; y: number }[];
 };
 
+/** OpenCV's contour is in pixel space with no real-world scale reference,
+ * unlike an OSM footprint (which has real meters). Scales it to a plausible
+ * room-sized footprint (longest side = targetMaxMeters) so it can still be
+ * extruded into geometry — an approximation, not a measured floor plan. */
+export function normalizePixelPolygonToMeters(
+  points: { x: number; y: number }[],
+  targetMaxMeters = 6
+): { x: number; y: number }[] {
+  if (points.length === 0) return [];
+  const xs = points.map((p) => p.x);
+  const ys = points.map((p) => p.y);
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
+  const span = Math.max(maxX - minX, maxY - minY) || 1;
+  const scale = targetMaxMeters / span;
+  const cx = (minX + maxX) / 2;
+  const cy = (minY + maxY) / 2;
+  return points.map((p) => ({ x: (p.x - cx) * scale, y: (p.y - cy) * scale }));
+}
+
 export async function analyzeImageWithOpenCV(imageBuffer: Buffer): Promise<ImageAnalysis> {
   const cv = await cvReadyPromise;
 

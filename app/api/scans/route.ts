@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { uploadScanPhoto, uploadScanPanorama } from "@/lib/storage";
+import { uploadScanPhoto, uploadScanPanorama, uploadScanBlueprint } from "@/lib/storage";
 import { getPlanLimits, isAtLimit } from "@/lib/plans";
 import { geocodeAddress } from "@/lib/geocode";
 import { findPublicBuildingFootprint } from "@/lib/osmBuilding";
@@ -73,6 +73,7 @@ async function createScan(request: Request, user: NonNullable<Awaited<ReturnType
   const metadataRaw = String(form.get("metadata") ?? "{}");
   const photos = form.getAll("photos").filter((f): f is File => f instanceof File);
   const panorama = form.get("panorama");
+  const blueprint = form.get("blueprint");
   const role = user.role;
 
   if (!street || !city) {
@@ -164,16 +165,20 @@ async function createScan(request: Request, user: NonNullable<Awaited<ReturnType
   }
 
   // Run real OpenCV (edge + contour detection) on whichever source image
-  // best represents the space's layout: a found blueprint first, falling
-  // back to the first uploaded overview photo.
+  // best represents the space's layout: a manually uploaded blueprint first
+  // (the user's own ground truth), then a found blueprint, falling back to
+  // the first uploaded overview photo.
   let imageAnalysis: string | null = null;
   try {
     const blueprintUrl = (JSON.parse(publicBlueprints) as { url: string }[])[0]?.url;
-    const analysisSource = blueprintUrl
-      ? Buffer.from(await (await safeFetch(blueprintUrl)).arrayBuffer())
-      : photos[0]
-        ? Buffer.from(await photos[0].arrayBuffer())
-        : null;
+    const analysisSource =
+      blueprint instanceof File
+        ? Buffer.from(await blueprint.arrayBuffer())
+        : blueprintUrl
+          ? Buffer.from(await (await safeFetch(blueprintUrl)).arrayBuffer())
+          : photos[0]
+            ? Buffer.from(await photos[0].arrayBuffer())
+            : null;
     if (analysisSource) {
       imageAnalysis = JSON.stringify(await analyzeImageWithOpenCV(analysisSource));
     }
@@ -209,11 +214,24 @@ async function createScan(request: Request, user: NonNullable<Awaited<ReturnType
     }
   }
 
+  let blueprintKey: string | null = null;
+  if (blueprint instanceof File) {
+    try {
+      blueprintKey = await uploadScanBlueprint(scan.id, blueprint);
+    } catch (err) {
+      console.warn(
+        `[scans] Blueprint upload failed for scan ${scan.id}:`,
+        err instanceof Error ? err.message : err
+      );
+    }
+  }
+
   await prisma.scan.update({
     where: { id: scan.id },
     data: {
       photoKeys: JSON.stringify(photoKeys),
       panoramaKey,
+      blueprintKey,
       referenceImages,
       publicBlueprints,
       imageAnalysis,

@@ -63,19 +63,31 @@ export type BlueprintAnalysis = {
   cornerCount: number;
 };
 
+/** Equirectangular projection of lat/lng points to local, flat meters
+ * (centered on the footprint's own centroid) — real coordinates for
+ * extruding this footprint into 3D geometry, not just an area figure. */
+export function projectToLocalMeters(points: Point[]): { x: number; y: number }[] {
+  if (points.length === 0) return [];
+  const avgLat = points.reduce((sum, p) => sum + p.lat, 0) / points.length;
+  const avgLng = points.reduce((sum, p) => sum + p.lng, 0) / points.length;
+  const metersPerDegLat = 111_320;
+  const metersPerDegLng = 111_320 * Math.cos((avgLat * Math.PI) / 180);
+  return points.map((p) => ({
+    x: (p.lng - avgLng) * metersPerDegLng,
+    y: (p.lat - avgLat) * metersPerDegLat,
+  }));
+}
+
 /** Shoelace formula, converting degrees to approximate meters at the
  * footprint's latitude so the area is a real (if approximate) figure. */
 function polygonAreaSquareMeters(points: Point[]): number {
   if (points.length < 3) return 0;
-  const avgLat = points.reduce((sum, p) => sum + p.lat, 0) / points.length;
-  const metersPerDegLat = 111_320;
-  const metersPerDegLng = 111_320 * Math.cos((avgLat * Math.PI) / 180);
-
+  const local = projectToLocalMeters(points);
   let area = 0;
-  for (let i = 0; i < points.length; i++) {
-    const p1 = points[i];
-    const p2 = points[(i + 1) % points.length];
-    area += p1.lng * metersPerDegLng * (p2.lat * metersPerDegLat) - p2.lng * metersPerDegLng * (p1.lat * metersPerDegLat);
+  for (let i = 0; i < local.length; i++) {
+    const p1 = local[i];
+    const p2 = local[(i + 1) % local.length];
+    area += p1.x * p2.y - p2.x * p1.y;
   }
   return Math.abs(area / 2);
 }
