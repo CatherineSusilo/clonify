@@ -1,18 +1,18 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getVisitorId } from "@/lib/visitor";
+import { getCurrentUser } from "@/lib/auth";
 import { uploadScanPhoto } from "@/lib/storage";
 import { geocodeAddress } from "@/lib/geocode";
+import { findPublicBuildingFootprint } from "@/lib/osmBuilding";
 import { enqueueScanReconstruction } from "@/lib/queue";
 import { ROLES } from "@/lib/roles";
 
 export async function POST(request: Request) {
-  const visitorId = await getVisitorId();
-  if (!visitorId) {
-    return NextResponse.json({ error: "Missing visitor session" }, { status: 400 });
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json({ error: "Sign in required" }, { status: 401 });
   }
-  const user = await prisma.user.findUnique({ where: { visitorId } });
-  if (!user || !user.role) {
+  if (!user.role) {
     return NextResponse.json({ error: "Select a role before scanning" }, { status: 400 });
   }
 
@@ -22,6 +22,7 @@ export async function POST(request: Request) {
   const state = String(form.get("state") ?? "");
   const country = String(form.get("country") ?? "");
   const metadataRaw = String(form.get("metadata") ?? "{}");
+  const isPublicBuilding = String(form.get("isPublicBuilding") ?? "") === "true";
   const photos = form.getAll("photos").filter((f): f is File => f instanceof File);
 
   if (!street || !city) {
@@ -42,10 +43,24 @@ export async function POST(request: Request) {
       metadata: metadataRaw,
       photoKeys: "[]",
       status: "processing",
+      isPublicBuilding,
     },
   });
 
   const geo = await geocodeAddress(`${street}, ${city}, ${state}, ${country}`);
+
+  let blueprintSource: string | null = null;
+  if (isPublicBuilding && geo) {
+    try {
+      const footprint = await findPublicBuildingFootprint(geo.lat, geo.lng);
+      if (footprint) blueprintSource = JSON.stringify(footprint);
+    } catch (err) {
+      console.warn(
+        `[scans] Public building footprint lookup failed for scan ${scan.id}:`,
+        err instanceof Error ? err.message : err
+      );
+    }
+  }
 
   const photoKeys: string[] = [];
   for (const photo of photos) {
@@ -53,7 +68,7 @@ export async function POST(request: Request) {
       photoKeys.push(await uploadScanPhoto(scan.id, photo));
     } catch (err) {
       console.warn(
-        `[scans] S3 upload failed for scan ${scan.id} (expected with fake AWS keys):`,
+        `[scans] Storage upload failed for scan ${scan.id}:`,
         err instanceof Error ? err.message : err
       );
       photoKeys.push(`local-fallback/${photo.name}`);
@@ -66,6 +81,7 @@ export async function POST(request: Request) {
       photoKeys: JSON.stringify(photoKeys),
       lat: geo?.lat,
       lng: geo?.lng,
+      blueprintSource,
     },
   });
 

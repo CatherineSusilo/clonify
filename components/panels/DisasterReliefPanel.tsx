@@ -10,26 +10,24 @@ export function DisasterReliefPanel({ scanId }: { scanId: string }) {
   return (
     <div className="grid gap-6 sm:grid-cols-3">
       <div className="sm:col-span-2">
-        <p className="mb-2 text-xs font-semibold text-zinc-400 uppercase">
-          Detected crack / displacement markers
-        </p>
-        <ul className="space-y-1 text-sm">
+        <p className="mb-2 text-sm text-muted">Detected crack / displacement markers</p>
+        <ul className="divide-y divide-line border-y border-line text-sm">
           {CRACKS.map((c) => (
-            <li key={c.label} className="flex justify-between rounded-lg bg-zinc-900 px-3 py-2">
+            <li key={c.label} className="flex justify-between py-2">
               <span>{c.label}</span>
-              <span className="font-mono text-amber-400">{c.depthIn}&quot; depth</span>
+              <span className="font-mono text-amber">{c.depthIn}&quot; depth</span>
             </li>
           ))}
         </ul>
-        <p className="mt-3 text-sm text-zinc-400">
+        <p className="mt-3 text-sm text-muted">
           Estimated volumetric mesh displacement:{" "}
-          <span className="font-mono text-amber-400">{volumeDisplacedFt3} ft³</span>
+          <span className="font-mono text-amber">{volumeDisplacedFt3} ft³</span>
         </p>
       </div>
       <div className="flex flex-col justify-end">
         <a
           href={`/api/scans/${scanId}/report`}
-          className="rounded-full bg-red-500/90 px-4 py-2 text-center text-sm font-semibold text-white hover:bg-red-500"
+          className="border border-danger bg-danger/20 px-4 py-2 text-center text-sm font-medium hover:bg-danger/30"
         >
           Generate claims summary PDF
         </a>

@@ -30,27 +30,24 @@ export function AccessibilityPanel({ scanId }: { scanId: string }) {
     <div className="grid gap-6 sm:grid-cols-3">
       <div className="sm:col-span-2">
         <div className="mb-3 flex items-center justify-between">
-          <p className="text-xs font-semibold text-zinc-400 uppercase">ADA Audit</p>
+          <p className="text-sm text-muted">ADA audit</p>
           <button
             onClick={() => setAuditOn((v) => !v)}
             className={clsx(
-              "rounded-full px-3 py-1 text-xs font-semibold",
-              auditOn ? "bg-blue-500 text-white" : "bg-zinc-800 text-zinc-400"
+              "border px-3 py-1 text-xs",
+              auditOn ? "border-blueprint-light bg-blueprint text-ink-text" : "border-line text-muted"
             )}
           >
-            {auditOn ? "ON" : "OFF"}
+            {auditOn ? "On" : "Off"}
           </button>
         </div>
-        <ul className="space-y-1 text-sm">
+        <ul className="divide-y divide-line border-y border-line text-sm">
           {rampResults.map((r) => {
             const fail = auditOn && r.slopePercent > MAX_SLOPE_PERCENT;
             return (
               <li
                 key={r.label}
-                className={clsx(
-                  "flex justify-between rounded-lg px-3 py-2",
-                  fail ? "bg-red-500/20 text-red-300" : "bg-zinc-900"
-                )}
+                className={clsx("flex justify-between py-2", fail && "text-danger")}
               >
                 <span>{r.label}</span>
                 <span className="font-mono">{r.slopePercent.toFixed(1)}° slope</span>
@@ -62,10 +59,7 @@ export function AccessibilityPanel({ scanId }: { scanId: string }) {
             return (
               <li
                 key={d.label}
-                className={clsx(
-                  "flex justify-between rounded-lg px-3 py-2",
-                  fail ? "bg-red-500/20 text-red-300" : "bg-zinc-900"
-                )}
+                className={clsx("flex justify-between py-2", fail && "text-danger")}
               >
                 <span>{d.label}</span>
                 <span className="font-mono">{d.widthIn}&quot; clearance</span>
@@ -74,13 +68,10 @@ export function AccessibilityPanel({ scanId }: { scanId: string }) {
           })}
         </ul>
       </div>
-      <div className="flex flex-col items-center justify-center gap-2 rounded-xl bg-zinc-900 p-4">
-        <p className="text-xs text-zinc-400 uppercase">Compliance score</p>
-        <p className="text-4xl font-bold text-blue-400">{score}</p>
-        <a
-          href={`/api/scans/${scanId}/report`}
-          className="mt-2 text-center text-sm text-indigo-400 underline underline-offset-2"
-        >
+      <div className="flex flex-col items-center justify-center gap-2 border border-line bg-ink-soft p-4">
+        <p className="text-sm text-muted">Compliance score</p>
+        <p className="font-display text-4xl font-medium text-blueprint-light">{score}</p>
+        <a href={`/api/scans/${scanId}/report`} className="text-sm text-blueprint-light hover:underline">
           Download ADA report
         </a>
       </div>

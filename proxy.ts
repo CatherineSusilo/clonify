@@ -1,20 +1,29 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { randomUUID } from "crypto";
+import { prisma } from "@/lib/prisma";
 
-const COOKIE_NAME = "visitorId";
+const SESSION_COOKIE = "session";
 
-export function proxy(request: NextRequest) {
-  const existing = request.cookies.get(COOKIE_NAME)?.value;
-  if (existing) return NextResponse.next();
+const PROTECTED_PREFIXES = ["/onboarding", "/scan", "/viewer"];
 
-  const response = NextResponse.next();
-  response.cookies.set(COOKIE_NAME, randomUUID(), {
-    httpOnly: true,
-    sameSite: "lax",
-    maxAge: 60 * 60 * 24 * 365,
-    path: "/",
-  });
-  return response;
+export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const needsAuth = PROTECTED_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+  );
+  if (!needsAuth) return NextResponse.next();
+
+  const token = request.cookies.get(SESSION_COOKIE)?.value;
+  const session = token
+    ? await prisma.session.findUnique({ where: { token } })
+    : null;
+
+  if (!session || session.expiresAt < new Date()) {
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("next", pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  return NextResponse.next();
 }
 
 export const config = {

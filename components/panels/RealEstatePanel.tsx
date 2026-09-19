@@ -25,24 +25,24 @@ export function RealEstatePanel({ scanId }: { scanId: string }) {
   return (
     <div className="grid gap-6 sm:grid-cols-3">
       <div>
-        <p className="mb-2 text-xs font-semibold text-zinc-400 uppercase">Wall color</p>
+        <p className="mb-2 text-sm text-muted">Wall color</p>
         <div className="flex gap-2">
           {SWATCHES.map((c) => (
             <button
               key={c}
               onClick={() => setWallColor(c)}
-              className="h-8 w-8 rounded-full border-2"
-              style={{ backgroundColor: c, borderColor: wallColor === c ? "#6366f1" : "transparent" }}
+              className="h-7 w-7 border"
+              style={{ backgroundColor: c, borderColor: wallColor === c ? "var(--blueprint-light)" : "transparent" }}
             />
           ))}
         </div>
       </div>
       <div>
-        <p className="mb-2 text-xs font-semibold text-zinc-400 uppercase">Flooring</p>
+        <p className="mb-2 text-sm text-muted">Flooring</p>
         <select
           value={material}
           onChange={(e) => setMaterial(e.target.value)}
-          className="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-1.5 text-sm"
+          className="border border-line bg-ink px-3 py-1.5 text-sm"
         >
           {MATERIALS.map((m) => (
             <option key={m}>{m}</option>
@@ -53,13 +53,13 @@ export function RealEstatePanel({ scanId }: { scanId: string }) {
         <button
           onClick={narrate}
           disabled={narrating}
-          className="rounded-full bg-indigo-500 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+          className="border border-blueprint-light bg-blueprint px-4 py-2 text-sm font-medium disabled:opacity-50"
         >
-          {narrating ? "Narrating…" : "▶ Walkthrough narration"}
+          {narrating ? "Narrating…" : "Play walkthrough narration"}
         </button>
         <a
           href={`/api/scans/${scanId}/report`}
-          className="text-center text-sm text-indigo-400 underline underline-offset-2"
+          className="text-center text-sm text-blueprint-light hover:underline"
         >
           Download staged presentation
         </a>

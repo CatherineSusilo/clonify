@@ -1,26 +1,61 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --ink: #14181f;
+  --ink-soft: #1b212b;
+  --ink-text: #e8e6df;
+  --muted: #8b93a1;
+  --line: #2a313d;
+  --paper: #f7f5ef;
+  --blueprint: #1e4d8c;
+  --blueprint-light: #6fa8dc;
+  --amber: #c97a2b;
+  --signal: #3f8f6e;
+  --danger: #b3543f;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-text: var(--ink-text);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-paper: var(--paper);
+  --color-blueprint: var(--blueprint);
+  --color-blueprint-light: var(--blueprint-light);
+  --color-amber: var(--amber);
+  --color-signal: var(--signal);
+  --color-danger: var(--danger);
+  --font-display: var(--font-space-grotesk);
+  --font-sans: var(--font-plex-sans);
+  --font-mono: var(--font-plex-mono);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--ink);
+  color: var(--ink-text);
+  font-family: var(--font-plex-sans), system-ui, sans-serif;
+}
+
+/* Subtle drafting-paper grid, used sparingly as a page texture rather than a gradient wash. */
+.grid-texture {
+  background-image:
+    linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 32px 32px;
+  background-position: -1px -1px;
+}
+
+.tick {
+  position: relative;
+}
+.tick::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 6px;
+  height: 6px;
+  border-top: 1px solid var(--blueprint-light);
+  border-left: 1px solid var(--blueprint-light);
 }

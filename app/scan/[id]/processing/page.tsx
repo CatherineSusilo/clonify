@@ -49,14 +49,14 @@ export default function ProcessingPage({
   }, [id, router]);
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center bg-black px-6 py-16">
-      <div className="w-full max-w-2xl rounded-2xl border border-zinc-800 bg-zinc-950 p-8 font-mono text-sm">
-        <p className="mb-4 text-zinc-500">
-          <span className="mr-2 inline-block h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
-          Reconstructing spatial twin...
+    <div className="flex flex-1 flex-col items-center justify-center px-6 py-16">
+      <div className="w-full max-w-2xl border border-line bg-ink-soft p-8 font-mono text-sm">
+        <p className="mb-4 text-muted">
+          <span className="mr-2 inline-block h-2 w-2 animate-pulse bg-signal" />
+          Building your 3D environment…
         </p>
         {logLines.map((line, i) => (
-          <p key={i} className="text-emerald-400">
+          <p key={i} className="text-signal">
             {"> "}
             {line}
           </p>

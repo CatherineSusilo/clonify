@@ -27,32 +27,58 @@ enum ScanStatus {
 
 model User {
   id             String         @id @default(cuid())
-  visitorId      String         @unique
+  email          String         @unique
+  passwordHash   String
   role           Role?
   unitPreference UnitPreference @default(IMPERIAL)
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
   scans          Scan[]
+  sessions       Session[]
   subscription   Subscription?
 }
 
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
 model Scan {
-  id            String     @id @default(cuid())
-  userId        String
-  user          User       @relation(fields: [userId], references: [id])
-  role          Role
-  street        String
-  city          String
-  state         String
-  country       String
-  lat           Float?
-  lng           Float?
-  metadata      String // JSON string of role-specific fields
-  photoKeys     String // JSON string array of S3 object keys
-  status        ScanStatus @default(processing)
-  modelUrl      String?
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
+  id                String     @id @default(cuid())
+  userId            String
+  user              User       @relation(fields: [userId], references: [id])
+  role              Role
+  street            String
+  city              String
+  state             String
+  country           String
+  lat               Float?
+  lng               Float?
+  metadata          String // JSON string of role-specific fields
+  photoKeys         String // JSON string array of S3 object keys
+  status            ScanStatus @default(processing)
+  modelUrl          String?
+  isPublicBuilding  Boolean    @default(false)
+  blueprintSource   String? // JSON: { provider, attribution, license, footprint, tags } from public open data
+  rooms             Room[]
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+}
+
+model Room {
+  id           String   @id @default(cuid())
+  scanId       String
+  scan         Scan     @relation(fields: [scanId], references: [id])
+  name         String
+  category     String?
+  photoKeys    String   @default("[]") // JSON string array of S3 object keys
+  panoramaKey  String? // S3 object key for an equirectangular (360°) photo
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model Subscription {

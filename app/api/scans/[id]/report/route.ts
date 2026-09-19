@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { prisma } from "@/lib/prisma";
 import { ROLE_INFO } from "@/lib/roles";
-import { getVisitorId } from "@/lib/visitor";
+import { getCurrentUser } from "@/lib/auth";
 
 const REPORT_TITLE: Record<string, string> = {
   REAL_ESTATE: "Staged Presentation Summary",
@@ -16,12 +16,11 @@ export async function GET(
   ctx: { params: Promise<{ id: string }> }
 ) {
   const { id } = await ctx.params;
-  const visitorId = await getVisitorId();
-  if (!visitorId) {
+  const user = await getCurrentUser();
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const user = await prisma.user.findUnique({ where: { visitorId } });
-  const scan = await prisma.scan.findFirst({ where: { id, userId: user?.id } });
+  const scan = await prisma.scan.findFirst({ where: { id, userId: user.id } });
   if (!scan) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const pdf = await PDFDocument.create();

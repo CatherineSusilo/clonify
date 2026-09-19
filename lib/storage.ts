@@ -1,4 +1,5 @@
-import { S3Client, PutObjectCommand, HeadBucketCommand, CreateBucketCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand, HeadBucketCommand, CreateBucketCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { randomUUID } from "crypto";
 
 // MinIO is S3-API compatible: same SDK, just point it at the self-hosted
@@ -27,13 +28,8 @@ async function ensureBucket() {
   bucketEnsured = true;
 }
 
-/** Uploads a photo to S3/MinIO. Returns the object key. */
-export async function uploadScanPhoto(
-  scanId: string,
-  file: File
-): Promise<string> {
+async function uploadFile(key: string, file: File): Promise<string> {
   await ensureBucket();
-  const key = `scans/${scanId}/${randomUUID()}-${file.name}`;
   const buffer = Buffer.from(await file.arrayBuffer());
   await s3.send(
     new PutObjectCommand({
@@ -44,4 +40,34 @@ export async function uploadScanPhoto(
     })
   );
   return key;
+}
+
+/** Uploads a scan-level overview photo to S3/MinIO. Returns the object key. */
+export function uploadScanPhoto(scanId: string, file: File): Promise<string> {
+  return uploadFile(`scans/${scanId}/${randomUUID()}-${file.name}`, file);
+}
+
+/** Uploads a photo captured for a specific room. Returns the object key. */
+export function uploadRoomPhoto(
+  scanId: string,
+  roomId: string,
+  file: File
+): Promise<string> {
+  return uploadFile(`scans/${scanId}/rooms/${roomId}/${randomUUID()}-${file.name}`, file);
+}
+
+/** Uploads an equirectangular (360°) panorama for a room. Returns the object key. */
+export function uploadRoomPanorama(
+  scanId: string,
+  roomId: string,
+  file: File
+): Promise<string> {
+  return uploadFile(`scans/${scanId}/rooms/${roomId}/panorama-${randomUUID()}-${file.name}`, file);
+}
+
+/** Returns a short-lived signed URL so the browser can load a private
+ * MinIO object directly, without proxying bytes through Next.js. */
+export async function getPhotoUrl(key: string): Promise<string> {
+  const command = new GetObjectCommand({ Bucket: BUCKET, Key: key });
+  return getSignedUrl(s3, command, { expiresIn: 3600 });
 }

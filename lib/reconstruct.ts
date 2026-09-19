@@ -1,7 +1,12 @@
 import { prisma } from "./prisma";
+import { DEFAULT_ROOMS } from "./defaultRooms";
+import type { RoleKey } from "./roles";
 
-// Public-domain sample glTF model, used as the fallback spatial twin whenever
-// the real mesh-reconstruction provider can't be reached (e.g. fake API key).
+// Public-domain sample glTF model, used as the fallback 3D environment
+// whenever the real mesh-reconstruction provider can't be reached (e.g. no
+// TRELLIS host configured yet). Real .glb output is AR/VR-ready by
+// construction — <model-viewer> exposes it through WebXR, Scene Viewer, and
+// Quick Look with no extra conversion step.
 export const DEMO_MODEL_URL =
   "https://modelviewer.dev/shared-assets/models/Astronaut.glb";
 
@@ -61,4 +66,12 @@ export async function reconstructScan(scanId: string) {
     where: { id: scanId },
     data: { status: "ready", modelUrl },
   });
+
+  const existingRooms = await prisma.room.count({ where: { scanId } });
+  if (existingRooms === 0) {
+    const defaults = DEFAULT_ROOMS[scan.role as RoleKey] ?? [];
+    await prisma.room.createMany({
+      data: defaults.map((room) => ({ scanId, name: room.name, category: room.category })),
+    });
+  }
 }

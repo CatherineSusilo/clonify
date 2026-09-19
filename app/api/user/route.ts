@@ -1,16 +1,11 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { getVisitorId } from "@/lib/visitor";
+import { getCurrentUser } from "@/lib/auth";
 import { ROLES } from "@/lib/roles";
 
 export async function GET() {
-  const visitorId = await getVisitorId();
-  if (!visitorId) return NextResponse.json({ user: null });
-  const user = await prisma.user.findUnique({
-    where: { visitorId },
-    include: { subscription: true },
-  });
+  const user = await getCurrentUser();
   return NextResponse.json({ user });
 }
 
@@ -20,9 +15,9 @@ const bodySchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const visitorId = await getVisitorId();
-  if (!visitorId) {
-    return NextResponse.json({ error: "Missing visitor session" }, { status: 400 });
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json({ error: "Sign in required" }, { status: 401 });
   }
   const parsed = bodySchema.safeParse(await request.json());
   if (!parsed.success) {
@@ -30,11 +25,10 @@ export async function POST(request: Request) {
   }
   const { role, unitPreference } = parsed.data;
 
-  const user = await prisma.user.upsert({
-    where: { visitorId },
-    update: { role, unitPreference },
-    create: { visitorId, role, unitPreference },
+  const updated = await prisma.user.update({
+    where: { id: user.id },
+    data: { role, unitPreference },
   });
 
-  return NextResponse.json({ user });
+  return NextResponse.json({ user: updated });
 }

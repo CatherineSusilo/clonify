@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { stripe } from "@/lib/stripe";
-import { prisma } from "@/lib/prisma";
-import { getVisitorId } from "@/lib/visitor";
+import { getCurrentUser } from "@/lib/auth";
 
 const PLAN_PRICES: Record<string, { name: string; amount: number }> = {
   pro: { name: "Clonify Pro", amount: 9900 },
@@ -12,20 +11,14 @@ const PLAN_PRICES: Record<string, { name: string; amount: number }> = {
 const bodySchema = z.object({ plan: z.enum(["pro", "enterprise"]) });
 
 export async function POST(request: Request) {
-  const visitorId = await getVisitorId();
-  if (!visitorId) {
-    return NextResponse.json({ error: "Missing visitor session" }, { status: 400 });
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json({ error: "Sign in required" }, { status: 401 });
   }
   const parsed = bodySchema.safeParse(await request.json());
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
-
-  const user = await prisma.user.upsert({
-    where: { visitorId },
-    update: {},
-    create: { visitorId },
-  });
 
   const plan = PLAN_PRICES[parsed.data.plan];
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/visitor";
+import { getCurrentUser } from "@/lib/auth";
 import { ROLE_INFO, type RoleKey } from "@/lib/roles";
 
 const ROLE_EXPORTS: Record<RoleKey, string[]> = {
@@ -48,30 +48,28 @@ export default async function CheckoutSuccessPage({
   const info = role ? ROLE_INFO[role] : null;
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col items-center justify-center px-6 py-16 text-center">
+    <div className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center px-6 py-16">
       {verified ? (
         <>
-          <p className="text-sm font-semibold text-emerald-400">Payment confirmed</p>
-          <h1 className="mt-2 text-3xl font-bold">{planName} workspace unlocked</h1>
+          <p className="text-sm text-signal">Payment confirmed</p>
+          <h1 className="font-display mt-2 text-2xl font-medium">{planName} plan unlocked</h1>
         </>
       ) : (
         <>
-          <p className="text-sm font-semibold text-amber-400">Could not verify session</p>
-          <h1 className="mt-2 text-3xl font-bold">
+          <p className="text-sm text-amber">Could not verify session</p>
+          <h1 className="font-display mt-2 text-2xl font-medium">
             Add a real Stripe test key to STRIPE_SECRET_KEY to complete checkout
           </h1>
         </>
       )}
 
       {info && (
-        <div className="mt-10 w-full rounded-2xl border border-zinc-800 bg-zinc-950 p-8 text-left">
-          <p className="text-xs font-semibold tracking-widest text-indigo-400 uppercase">
-            {info.sdg} · {info.label}
-          </p>
-          <p className="mt-4 text-sm text-zinc-400">Unlocked exports for your role:</p>
-          <ul className="mt-2 space-y-2 text-sm">
+        <div className="mt-8 border border-line bg-ink-soft p-6">
+          <p className="text-sm text-blueprint-light">{info.label}</p>
+          <p className="mt-3 text-sm text-muted">Now included with your plan:</p>
+          <ul className="mt-2 divide-y divide-line">
             {ROLE_EXPORTS[role!].map((item) => (
-              <li key={item} className="rounded-lg bg-zinc-900 px-3 py-2">
+              <li key={item} className="py-2 text-sm">
                 {item}
               </li>
             ))}
@@ -81,7 +79,7 @@ export default async function CheckoutSuccessPage({
 
       <Link
         href="/scan"
-        className="mt-10 rounded-full bg-indigo-500 px-8 py-3 font-semibold text-white transition hover:bg-indigo-400"
+        className="mt-8 w-fit border border-blueprint-light bg-blueprint px-6 py-3 font-medium hover:bg-blueprint/80"
       >
         Start a new scan
       </Link>

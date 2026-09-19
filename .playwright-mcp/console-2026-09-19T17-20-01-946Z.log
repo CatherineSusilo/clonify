@@ -1,0 +1,17 @@
+[     137ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[     143ms] [LOG] [HMR] connected @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[   34031ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[   34078ms] [LOG] [Fast Refresh] done in 149ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[   54768ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[   54794ms] [LOG] [Fast Refresh] done in 126ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[   57536ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[   57691ms] [LOG] [Fast Refresh] done in 257ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[   57837ms] [WARNING] THREE.WARNING: Multiple instances of Three.js being imported. @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[  150633ms] [LOG] [Fast Refresh] done in 92578ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[  164942ms] [LOG] [Fast Refresh] done in 92578ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[  178362ms] [LOG] [Fast Refresh] done in 92578ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[  178434ms] [LOG] [Fast Refresh] done in 92578ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[  184707ms] [LOG] [Fast Refresh] done in 92578ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[  191450ms] [LOG] [Fast Refresh] done in 92578ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[  197001ms] [LOG] [Fast Refresh] done in 92578ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[  203632ms] [LOG] [Fast Refresh] done in 92578ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
