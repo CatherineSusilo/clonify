@@ -21,6 +21,10 @@ export async function GET(
   const metadata = JSON.parse(scan.metadata || "{}") as Record<string, string>;
   const glb = buildRoomMockupGlb({
     wallColorHex: metadata.wallColorHex,
+    floorColorHex: metadata.floorColorHex,
+    width: metadata.roomWidth ? Number(metadata.roomWidth) : undefined,
+    depth: metadata.roomDepth ? Number(metadata.roomDepth) : undefined,
+    height: metadata.roomHeight ? Number(metadata.roomHeight) : undefined,
   });
 
   return new NextResponse(new Uint8Array(glb), {
