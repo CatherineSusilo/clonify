@@ -1,0 +1,30 @@
+services:
+  # Object Storage (S3 / R2 replacement)
+  minio:
+    # Docker Hub's minio/minio now requires auth to pull; quay.io is the
+    # working public mirror.
+    image: quay.io/minio/minio:latest
+    container_name: clonify-s3
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: "s3_access_key"
+      MINIO_ROOT_PASSWORD: "s3_secret_key_change_me"
+    ports:
+      - "9000:9000" # S3 API endpoint
+      - "9001:9001" # Web admin dashboard
+    volumes:
+      - minio_storage:/data
+
+  # In-memory cache & queue engine (Upstash Redis replacement)
+  valkey:
+    image: valkey/valkey:8.0-alpine
+    container_name: clonify-queue-db
+    command: valkey-server --save 60 1 --loglevel notice
+    ports:
+      - "6379:6379"
+    volumes:
+      - valkey_storage:/data
+
+volumes:
+  minio_storage:
+  valkey_storage:

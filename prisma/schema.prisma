@@ -1,0 +1,67 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  REAL_ESTATE
+  DISASTER_RELIEF
+  ACCESSIBILITY_AUDIT
+  MEP_ENGINEER
+}
+
+enum UnitPreference {
+  IMPERIAL
+  METRIC
+}
+
+enum ScanStatus {
+  processing
+  ready
+  error
+}
+
+model User {
+  id             String         @id @default(cuid())
+  visitorId      String         @unique
+  role           Role?
+  unitPreference UnitPreference @default(IMPERIAL)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  scans          Scan[]
+  subscription   Subscription?
+}
+
+model Scan {
+  id            String     @id @default(cuid())
+  userId        String
+  user          User       @relation(fields: [userId], references: [id])
+  role          Role
+  street        String
+  city          String
+  state         String
+  country       String
+  lat           Float?
+  lng           Float?
+  metadata      String // JSON string of role-specific fields
+  photoKeys     String // JSON string array of S3 object keys
+  status        ScanStatus @default(processing)
+  modelUrl      String?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+}
+
+model Subscription {
+  id                   String   @id @default(cuid())
+  userId               String   @unique
+  user                 User     @relation(fields: [userId], references: [id])
+  isPro                Boolean  @default(false)
+  plan                 String?
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  updatedAt            DateTime @updatedAt
+}

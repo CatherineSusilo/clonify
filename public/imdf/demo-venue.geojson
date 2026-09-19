@@ -1,0 +1,37 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "category": "room", "name": "Living Room", "ordinal": 0, "height": 3.0 },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[0, 0], [0.00012, 0], [0.00012, 0.00009], [0, 0.00009], [0, 0]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "category": "room", "name": "Kitchen", "ordinal": 0, "height": 3.0 },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[0.00013, 0], [0.00021, 0], [0.00021, 0.00009], [0.00013, 0.00009], [0.00013, 0]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "category": "room", "name": "Bedroom", "ordinal": 0, "height": 2.7 },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[0, 0.0001], [0.0001, 0.0001], [0.0001, 0.00018], [0, 0.00018], [0, 0.0001]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "category": "restroom", "name": "Bathroom", "ordinal": 0, "height": 2.7 },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[0.00011, 0.0001], [0.00021, 0.0001], [0.00021, 0.00018], [0.00011, 0.00018], [0.00011, 0.0001]]]
+      }
+    }
+  ]
+}
