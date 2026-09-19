@@ -1,17 +1,17 @@
 @import "tailwindcss";
 
 :root {
-  --ink: #14181f;
-  --ink-soft: #1b212b;
-  --ink-text: #e8e6df;
-  --muted: #8b93a1;
-  --line: #2a313d;
-  --paper: #f7f5ef;
-  --blueprint: #1e4d8c;
-  --blueprint-light: #6fa8dc;
-  --amber: #c97a2b;
-  --signal: #3f8f6e;
-  --danger: #b3543f;
+  --ink: #060c07;
+  --ink-soft: #0b1a0e;
+  --ink-text: #d6ffe0;
+  --muted: #5f9470;
+  --line: #17381f;
+  --paper: #0b1a0e;
+  --blueprint: #22c55e;
+  --blueprint-light: #39ff6a;
+  --amber: #ffcc4d;
+  --signal: #5cff9d;
+  --danger: #ff6a5f;
 }
 
 @theme inline {
@@ -35,15 +35,42 @@ body {
   background: var(--ink);
   color: var(--ink-text);
   font-family: var(--font-plex-sans), system-ui, sans-serif;
+  position: relative;
 }
 
-/* Subtle drafting-paper grid, used sparingly as a page texture rather than a gradient wash. */
-.grid-texture {
+/* Night-vision scope grid: fixed so it reads as the display surface itself,
+   not a scrolling decoration. A faint vignette sells the goggle/HUD framing. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
   background-image:
-    linear-gradient(var(--line) 1px, transparent 1px),
-    linear-gradient(90deg, var(--line) 1px, transparent 1px);
-  background-size: 32px 32px;
+    linear-gradient(rgba(57, 255, 106, 0.14) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(57, 255, 106, 0.14) 1px, transparent 1px),
+    linear-gradient(rgba(57, 255, 106, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(57, 255, 106, 0.05) 1px, transparent 1px);
+  background-size: 128px 128px, 128px 128px, 16px 16px, 16px 16px;
   background-position: -1px -1px;
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 20%, transparent 0%, transparent 45%, rgba(2, 6, 3, 0.7) 100%);
+}
+
+body > * {
+  position: relative;
+  z-index: 1;
+}
+
+.glow {
+  text-shadow: 0 0 12px rgba(57, 255, 106, 0.55);
 }
 
 .tick {

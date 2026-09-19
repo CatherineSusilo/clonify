@@ -52,6 +52,7 @@ model Scan {
   userId            String
   user              User       @relation(fields: [userId], references: [id])
   role              Role
+  placeTitle        String? // e.g. "CN Tower" — used to search Wikimedia Commons/Openverse for reconstruction images
   street            String
   city              String
   state             String
@@ -60,6 +61,8 @@ model Scan {
   lng               Float?
   metadata          String // JSON string of role-specific fields
   photoKeys         String // JSON string array of S3 object keys
+  panoramaKey       String? // S3 object key for an optional equirectangular (360°) photo, preferred as the reconstruction source
+  referenceImages   String     @default("[]") // JSON array of {url,title,license,attribution,source} found by searching placeTitle online
   status            ScanStatus @default(processing)
   modelUrl          String?
   isPublicBuilding  Boolean    @default(false)
@@ -77,6 +80,7 @@ model Room {
   category     String?
   photoKeys    String   @default("[]") // JSON string array of S3 object keys
   panoramaKey  String? // S3 object key for an equirectangular (360°) photo
+  connections  String   @default("[]") // JSON string array of adjacent Room ids, for room-to-room navigation
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }

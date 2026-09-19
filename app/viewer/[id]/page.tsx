@@ -77,7 +77,7 @@ export default function ViewerPage({ params }: { params: Promise<{ id: string }>
           <div className="overflow-hidden border border-line bg-black">
             <model-viewer
               suppressHydrationWarning
-              src={scan.modelUrl ?? undefined}
+              src={scan.modelUrl ?? `/api/scans/${scan.id}/model`}
               alt="3D reconstruction of the scanned space"
               camera-controls
               auto-rotate

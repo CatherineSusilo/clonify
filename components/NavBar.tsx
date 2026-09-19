@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { getCurrentUser } from "@/lib/auth";
 import { LogoutButton } from "./LogoutButton";
 
@@ -6,10 +7,10 @@ export async function NavBar() {
   const user = await getCurrentUser();
 
   return (
-    <header className="border-b border-line">
-      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
-        <Link href="/" className="flex items-center gap-2 font-display text-lg font-medium">
-          <span className="tick h-4 w-4 border border-blueprint-light" aria-hidden />
+    <header className="border-b border-line bg-ink/80 backdrop-blur">
+      <div className="mx-auto flex h-20 max-w-6xl items-center justify-between px-6">
+        <Link href="/" className="glow flex items-center gap-3 font-display text-xl font-medium">
+          <Image src="/logo.png" alt="" width={48} height={48} priority />
           Clonify
         </Link>
         <nav className="flex items-center gap-6 text-sm">

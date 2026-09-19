@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { uploadScanPhoto } from "@/lib/storage";
+import { uploadScanPhoto, uploadScanPanorama } from "@/lib/storage";
 import { geocodeAddress } from "@/lib/geocode";
 import { findPublicBuildingFootprint } from "@/lib/osmBuilding";
+import { findBuildingPhotos } from "@/lib/wikimedia";
+import { analyzeBlueprint } from "@/lib/blueprintAnalysis";
 import { enqueueScanReconstruction } from "@/lib/queue";
 import { ROLES } from "@/lib/roles";
 
@@ -22,8 +24,8 @@ export async function POST(request: Request) {
   const state = String(form.get("state") ?? "");
   const country = String(form.get("country") ?? "");
   const metadataRaw = String(form.get("metadata") ?? "{}");
-  const isPublicBuilding = String(form.get("isPublicBuilding") ?? "") === "true";
   const photos = form.getAll("photos").filter((f): f is File => f instanceof File);
+  const panorama = form.get("panorama");
 
   if (!street || !city) {
     return NextResponse.json({ error: "Address is required" }, { status: 400 });
@@ -43,17 +45,36 @@ export async function POST(request: Request) {
       metadata: metadataRaw,
       photoKeys: "[]",
       status: "processing",
-      isPublicBuilding,
     },
   });
 
   const geo = await geocodeAddress(`${street}, ${city}, ${state}, ${country}`);
 
+  // As soon as we have a location, automatically look for a public building
+  // footprint and any freely-licensed reference photos of it — the user
+  // never has to say "this is a public building" or attach anything.
   let blueprintSource: string | null = null;
-  if (isPublicBuilding && geo) {
+  if (geo) {
     try {
       const footprint = await findPublicBuildingFootprint(geo.lat, geo.lng);
-      if (footprint) blueprintSource = JSON.stringify(footprint);
+      if (footprint) {
+        const buildingPhotos = await findBuildingPhotos(footprint.tags, 6);
+        // Clean up the raw OSM-traced outline (jagged, near-collinear
+        // points) via Douglas-Peucker simplification before using it.
+        const analysis = analyzeBlueprint(footprint.footprint);
+        blueprintSource = JSON.stringify({
+          ...footprint,
+          footprint: analysis.simplifiedFootprint,
+          analysis: {
+            originalPointCount: analysis.originalPointCount,
+            simplifiedPointCount: analysis.simplifiedPointCount,
+            areaSquareMeters: analysis.areaSquareMeters,
+            cornerCount: analysis.cornerCount,
+          },
+          photos: buildingPhotos,
+          photo: buildingPhotos[0] ?? null,
+        });
+      }
     } catch (err) {
       console.warn(
         `[scans] Public building footprint lookup failed for scan ${scan.id}:`,
@@ -75,13 +96,27 @@ export async function POST(request: Request) {
     }
   }
 
+  let panoramaKey: string | null = null;
+  if (panorama instanceof File) {
+    try {
+      panoramaKey = await uploadScanPanorama(scan.id, panorama);
+    } catch (err) {
+      console.warn(
+        `[scans] Panorama upload failed for scan ${scan.id}:`,
+        err instanceof Error ? err.message : err
+      );
+    }
+  }
+
   await prisma.scan.update({
     where: { id: scan.id },
     data: {
       photoKeys: JSON.stringify(photoKeys),
+      panoramaKey,
       lat: geo?.lat,
       lng: geo?.lng,
       blueprintSource,
+      isPublicBuilding: blueprintSource !== null,
     },
   });
 

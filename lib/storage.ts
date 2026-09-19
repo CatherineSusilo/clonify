@@ -47,6 +47,11 @@ export function uploadScanPhoto(scanId: string, file: File): Promise<string> {
   return uploadFile(`scans/${scanId}/${randomUUID()}-${file.name}`, file);
 }
 
+/** Uploads a scan-level equirectangular (360°) panorama. Returns the object key. */
+export function uploadScanPanorama(scanId: string, file: File): Promise<string> {
+  return uploadFile(`scans/${scanId}/panorama-${randomUUID()}-${file.name}`, file);
+}
+
 /** Uploads a photo captured for a specific room. Returns the object key. */
 export function uploadRoomPhoto(
   scanId: string,
@@ -70,4 +75,13 @@ export function uploadRoomPanorama(
 export async function getPhotoUrl(key: string): Promise<string> {
   const command = new GetObjectCommand({ Bucket: BUCKET, Key: key });
   return getSignedUrl(s3, command, { expiresIn: 3600 });
+}
+
+/** Downloads an object's bytes server-side — used to hand a stored photo to
+ * an external reconstruction service (e.g. TRELLIS) that needs the file
+ * content itself, not a browser-facing URL. */
+export async function downloadPhoto(key: string): Promise<Buffer> {
+  const res = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: key }));
+  const bytes = await res.Body!.transformToByteArray();
+  return Buffer.from(bytes);
 }

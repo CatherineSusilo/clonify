@@ -6,13 +6,14 @@ export default function Home() {
     <div className="flex flex-1 flex-col">
       <section className="mx-auto grid w-full max-w-6xl gap-10 px-6 py-16 lg:grid-cols-[1.1fr_1fr] lg:items-center lg:py-24">
         <div>
-          <h1 className="font-display max-w-md text-4xl font-medium leading-[1.1] sm:text-5xl">
+          <h1 className="glow font-display max-w-md text-4xl font-medium leading-[1.1] sm:text-5xl">
             Map every room before you walk in.
           </h1>
           <p className="mt-6 max-w-md text-lg text-muted">
-            Photograph a space and Clonify builds a walkable indoor map:
-            floor plan, 3D twin, and the measurements your job actually needs
-            — slope, clearance, square footage, damage.
+            Photograph a space and Clonify builds a walkable, AR-ready 3D
+            environment: floor plan, room-to-room navigation, and the
+            measurements your job actually needs — slope, clearance, square
+            footage, damage.
           </p>
           <div className="mt-8 flex flex-wrap gap-4">
             <Link
@@ -33,13 +34,13 @@ export default function Home() {
         <div className="tick relative border border-line bg-ink-soft p-2">
           <model-viewer
             suppressHydrationWarning
-            src="https://modelviewer.dev/shared-assets/models/Astronaut.glb"
-            alt="Sample reconstructed space"
+            src="/api/demo-model"
+            alt="Sample reconstructed room"
             camera-controls
             auto-rotate
             shadow-intensity="1"
             exposure="1"
-            style={{ width: "100%", height: "360px", backgroundColor: "#0e1218" }}
+            style={{ width: "100%", height: "360px", backgroundColor: "#040a05" }}
           />
           <p className="mt-2 font-mono text-xs text-muted">sample reconstruction — demo model</p>
         </div>

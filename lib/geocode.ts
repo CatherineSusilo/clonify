@@ -14,3 +14,46 @@ export async function geocodeAddress(query: string) {
     return null;
   }
 }
+
+export type AddressSuggestion = {
+  label: string;
+  street: string;
+  city: string;
+  state: string;
+  country: string;
+  lat: number;
+  lng: number;
+};
+
+/** Address autocomplete via Nominatim — free, open, no API key. Used
+ * client-side through /api/geocode/suggest, not called directly from the
+ * browser (Nominatim's usage policy asks for a descriptive User-Agent and
+ * server-side traffic, not raw client requests from every visitor). */
+export async function suggestAddresses(query: string): Promise<AddressSuggestion[]> {
+  if (query.trim().length < 3) return [];
+  const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=5&q=${encodeURIComponent(
+    query
+  )}`;
+  const res = await fetch(url, { headers: { "User-Agent": "clonify-app/1.0" } });
+  if (!res.ok) return [];
+  const results = (await res.json()) as {
+    display_name: string;
+    lat: string;
+    lon: string;
+    address?: Record<string, string>;
+  }[];
+
+  return results.map((r) => {
+    const addr = r.address ?? {};
+    const street = [addr.house_number, addr.road].filter(Boolean).join(" ") || addr.neighbourhood || "";
+    return {
+      label: r.display_name,
+      street,
+      city: addr.city ?? addr.town ?? addr.village ?? "",
+      state: addr.state ?? addr.state_code ?? "",
+      country: addr.country ?? "",
+      lat: parseFloat(r.lat),
+      lng: parseFloat(r.lon),
+    };
+  });
+}

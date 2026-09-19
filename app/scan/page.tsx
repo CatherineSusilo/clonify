@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ROLE_INFO, type RoleKey } from "@/lib/roles";
 import { ROLE_SCAN_FIELDS } from "@/lib/scanFields";
+import { AddressAutocomplete } from "@/components/AddressAutocomplete";
+import type { AddressSuggestion } from "@/lib/geocode";
 
 export default function ScanPage() {
   const router = useRouter();
@@ -11,8 +13,8 @@ export default function ScanPage() {
   const [loading, setLoading] = useState(true);
   const [address, setAddress] = useState({ street: "", city: "", state: "", country: "" });
   const [metadata, setMetadata] = useState<Record<string, string>>({});
-  const [isPublicBuilding, setIsPublicBuilding] = useState(false);
   const [photos, setPhotos] = useState<File[]>([]);
+  const [panorama, setPanorama] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,6 +38,10 @@ export default function ScanPage() {
   const info = ROLE_INFO[role];
   const fields = ROLE_SCAN_FIELDS[role];
 
+  function applySuggestion(s: AddressSuggestion) {
+    setAddress({ street: s.street, city: s.city, state: s.state, country: s.country });
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
@@ -47,8 +53,8 @@ export default function ScanPage() {
     form.set("state", address.state);
     form.set("country", address.country);
     form.set("metadata", JSON.stringify(metadata));
-    form.set("isPublicBuilding", String(isPublicBuilding));
     photos.forEach((p) => form.append("photos", p));
+    if (panorama) form.set("panorama", panorama);
 
     try {
       const res = await fetch("/api/scans", { method: "POST", body: form });
@@ -65,16 +71,18 @@ export default function ScanPage() {
     <div className="mx-auto w-full max-w-2xl flex-1 px-6 py-16">
       <p className="text-sm text-blueprint-light">{info.label}</p>
       <h1 className="font-display mt-2 text-2xl font-medium">Where's the space?</h1>
+      <p className="mt-2 text-sm text-muted">
+        If it's a public building, we'll automatically pull its footprint
+        from open map data — no need to attach anything yourself.
+      </p>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-8">
         <fieldset className="space-y-4">
           <legend className="mb-2 text-sm text-muted">Location</legend>
-          <input
-            required
-            placeholder="Street address"
-            className="w-full border border-line bg-ink-soft px-4 py-2.5 focus:border-blueprint-light focus:outline-none"
+          <AddressAutocomplete
             value={address.street}
-            onChange={(e) => setAddress({ ...address, street: e.target.value })}
+            onChange={(street) => setAddress({ ...address, street })}
+            onSelect={applySuggestion}
           />
           <div className="grid grid-cols-2 gap-4">
             <input
@@ -97,21 +105,6 @@ export default function ScanPage() {
             value={address.country}
             onChange={(e) => setAddress({ ...address, country: e.target.value })}
           />
-
-          <label className="flex items-start gap-3 pt-2 text-sm text-muted">
-            <input
-              type="checkbox"
-              checked={isPublicBuilding}
-              onChange={(e) => setIsPublicBuilding(e.target.checked)}
-              className="mt-0.5 h-4 w-4 border-line accent-blueprint"
-            />
-            <span>
-              This is a public building. We'll look up its footprint from
-              OpenStreetMap's open building data (© OpenStreetMap
-              contributors, ODbL) to line up your scan — not a copy of any
-              architect's drawings.
-            </span>
-          </label>
         </fieldset>
 
         <fieldset className="space-y-4">
@@ -162,6 +155,23 @@ export default function ScanPage() {
             />
             <span className="text-sm text-muted">
               {photos.length > 0 ? `${photos.length} photo(s) selected` : "Choose photos"}
+            </span>
+          </label>
+        </fieldset>
+
+        <fieldset>
+          <legend className="mb-2 text-sm text-muted">
+            360° panorama <span className="text-muted/70">(optional — improves 3D reconstruction)</span>
+          </legend>
+          <label className="flex cursor-pointer flex-col items-center justify-center border border-dashed border-line px-6 py-6 text-center hover:border-muted">
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => setPanorama(e.target.files?.[0] ?? null)}
+            />
+            <span className="text-sm text-muted">
+              {panorama ? panorama.name : "Choose an equirectangular photo"}
             </span>
           </label>
         </fieldset>

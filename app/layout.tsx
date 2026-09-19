@@ -24,7 +24,8 @@ const plexMono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: "Clonify — map every room before you walk in",
   description:
-    "Photograph a space, get a navigable indoor map and 3D twin, tailored to your role: staging, damage assessment, accessibility audits, or retrofit planning.",
+    "Photograph a space and get a walkable, AR-ready 3D environment with room-to-room navigation — tailored to staging, damage assessment, accessibility audits, or retrofit planning.",
+  icons: { icon: "/logo.png" },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

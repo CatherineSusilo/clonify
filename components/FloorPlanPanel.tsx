@@ -4,12 +4,22 @@ import { useEffect, useRef, useState } from "react";
 import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 
+type ReferencePhoto = { url: string; title: string; license: string; attribution: string };
+
 export type BuildingFootprint = {
   provider: string;
   attribution: string;
   license: string;
   tags: Record<string, string>;
   footprint: { lat: number; lng: number }[];
+  photo?: ReferencePhoto | null;
+  photos?: ReferencePhoto[];
+  analysis?: {
+    originalPointCount: number;
+    simplifiedPointCount: number;
+    areaSquareMeters: number;
+    cornerCount: number;
+  };
 };
 
 type PositioningResult = {
@@ -84,8 +94,9 @@ export function FloorPlanPanel({
       container: mapContainer.current,
       style: "https://tiles.openfreemap.org/styles/liberty",
       center: [centerLng, centerLat],
-      zoom: 19,
-      pitch: 45,
+      zoom: 17.5,
+      pitch: 55,
+      bearing: -17,
     });
 
     map.on("error", (e) => {
@@ -123,17 +134,17 @@ export function FloorPlanPanel({
               "match",
               ["get", "category"],
               "restroom",
-              "#38bdf8",
+              "#5cff9d",
               "building",
-              "#6fa8dc",
-              "#818cf8",
+              "#22c55e",
+              "#39ff6a",
             ],
             "fill-extrusion-height": ["*", ["get", "height"], 3],
             "fill-extrusion-opacity": 0.85,
           },
         });
 
-        new maplibregl.Marker({ color: "#c97a2b" })
+        new maplibregl.Marker({ color: "#ffcc4d" })
           .setLngLat([centerLng, centerLat])
           .addTo(map);
       } catch (err) {
@@ -175,9 +186,35 @@ export function FloorPlanPanel({
         </p>
       )}
       {building && (
-        <p className="border-t border-line px-3 py-2 text-xs text-muted">
-          Building outline: {building.attribution}, {building.license}
-        </p>
+        <div className="border-t border-line px-3 py-2 text-xs text-muted">
+          <p>
+            Building outline: {building.attribution}, {building.license}
+            {building.analysis &&
+              ` — simplified ${building.analysis.originalPointCount} → ${building.analysis.simplifiedPointCount} points, ~${Math.round(
+                building.analysis.areaSquareMeters
+              )}m² footprint`}
+          </p>
+          {building.photos && building.photos.length > 0 && (
+            <div className="mt-2">
+              <p className="mb-1">
+                {building.photos.length} reference photo(s) found automatically — fed into 3D
+                reconstruction:
+              </p>
+              <div className="flex gap-1.5">
+                {building.photos.slice(0, 6).map((photo, i) => (
+                  // eslint-disable-next-line @next/next/no-img-element -- external Commons URLs, not worth an image loader config for small attribution thumbnails
+                  <img
+                    key={i}
+                    src={photo.url}
+                    alt={photo.title}
+                    title={`${photo.attribution}, ${photo.license}`}
+                    className="h-12 w-16 border border-line object-cover"
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       )}
       <div className="border-t border-line px-3 py-2 text-xs">
         {positioningStatus === "loading" && (
