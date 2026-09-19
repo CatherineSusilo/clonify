@@ -51,6 +51,15 @@ export async function POST(request: Request) {
     );
   }
 
+  try {
+    return await createScan(request, user);
+  } catch (err) {
+    console.error("[scans] Failed to create scan:", err instanceof Error ? err.message : err);
+    return NextResponse.json({ error: "Failed to create scan" }, { status: 500 });
+  }
+}
+
+async function createScan(request: Request, user: NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>) {
   const form = await request.formData();
   const placeTitle = String(form.get("placeTitle") ?? "").trim();
   const requestedFloorCount = Number.parseInt(String(form.get("floorCount") ?? "1"), 10);
@@ -62,18 +71,19 @@ export async function POST(request: Request) {
   const metadataRaw = String(form.get("metadata") ?? "{}");
   const photos = form.getAll("photos").filter((f): f is File => f instanceof File);
   const panorama = form.get("panorama");
+  const role = user.role;
 
   if (!street || !city) {
     return NextResponse.json({ error: "Address is required" }, { status: 400 });
   }
-  if (!ROLES.includes(user.role)) {
+  if (!role || !ROLES.includes(role)) {
     return NextResponse.json({ error: "Invalid role" }, { status: 400 });
   }
 
   const scan = await prisma.scan.create({
     data: {
       userId: user.id,
-      role: user.role,
+      role,
       placeTitle: placeTitle || null,
       street,
       city,
