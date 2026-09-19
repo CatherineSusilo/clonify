@@ -75,9 +75,9 @@ export default function ScanPage() {
   return (
     <div className="mx-auto w-full max-w-2xl flex-1 px-6 py-16">
       <p className="text-sm text-blueprint-light">{info.label}</p>
-      <h1 className="font-display mt-2 text-2xl font-medium">Where's the space?</h1>
+      <h1 className="font-display mt-2 text-2xl font-medium">Where&apos;s the space?</h1>
       <p className="mt-2 text-sm text-muted">
-        If it's a public building, we'll automatically pull its footprint
+        If it&apos;s a public building, we&apos;ll automatically pull its footprint
         from open map data — no need to attach anything yourself.
       </p>
 
@@ -176,7 +176,7 @@ export default function ScanPage() {
         <fieldset>
           <legend className="mb-2 text-sm text-muted">Overview photos</legend>
           <p className="mb-3 text-xs text-muted">
-            A few wide shots of the space, from different angles. You'll scan
+            A few wide shots of the space, from different angles. You&apos;ll scan
             individual rooms in more detail after processing.
           </p>
           <label className="flex cursor-pointer flex-col items-center justify-center border border-dashed border-line px-6 py-10 text-center hover:border-muted">

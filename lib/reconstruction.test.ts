@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyReconstructionEvent, reconstructionFromMetadata } from "./reconstruction";
+import { applyReconstructionEvent, reconstructionFromMetadata, reconstructionPayload } from "./reconstruction";
 
 describe("reconstructionFromMetadata", () => {
   it("creates wall, floor, and depth annotations from scan metadata", () => {
@@ -25,5 +25,15 @@ describe("applyReconstructionEvent", () => {
 
     expect(next.modelUrl).toBe("/api/model.glb");
     expect(next.annotations[0]).toMatchObject({ status: "confirmed", confidence: 0.97 });
+  });
+});
+
+describe("reconstructionPayload", () => {
+  it("returns a JSON-safe private-server payload without changing the shared state contract", () => {
+    const payload = reconstructionPayload({ roomDepth: "5.2" }, "/api/model.glb", "private-server");
+
+    expect(payload.mode).toBe("private-server");
+    expect(payload.state.modelUrl).toBe("/api/model.glb");
+    expect(JSON.parse(JSON.stringify(payload))).toEqual(payload);
   });
 });

@@ -53,7 +53,7 @@ export default async function Home() {
 
       <section className="border-t border-line">
         <div className="mx-auto max-w-6xl px-6 py-16">
-          <h2 className="font-display text-2xl font-medium">Built around what you're there to do</h2>
+          <h2 className="font-display text-2xl font-medium">Built around what you&apos;re there to do</h2>
           <p className="mt-2 max-w-xl text-muted">
             Onboarding sets your default fields, tools, and exports — no
             generic dashboard to configure.

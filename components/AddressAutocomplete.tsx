@@ -24,15 +24,18 @@ export function AddressAutocomplete({
       return;
     }
     if (value.trim().length < 3) {
-      setSuggestions([]);
-      return;
+      debounceRef.current = setTimeout(() => {
+        setSuggestions([]);
+        setOpen(false);
+      }, 0);
+    } else {
+      debounceRef.current = setTimeout(async () => {
+        const res = await fetch(`/api/geocode/suggest?q=${encodeURIComponent(value)}`);
+        const data = await res.json();
+        setSuggestions(data.suggestions ?? []);
+        setOpen(true);
+      }, 350);
     }
-    debounceRef.current = setTimeout(async () => {
-      const res = await fetch(`/api/geocode/suggest?q=${encodeURIComponent(value)}`);
-      const data = await res.json();
-      setSuggestions(data.suggestions ?? []);
-      setOpen(true);
-    }, 350);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };

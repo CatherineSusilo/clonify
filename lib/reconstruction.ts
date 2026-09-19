@@ -24,6 +24,7 @@ export type ReconstructionEvent =
   | { type: "annotation"; annotation: SurfaceAnnotation };
 
 type ScanMetadata = Record<string, string | undefined>;
+export type ReconstructionMode = "local" | "private-server";
 
 export function reconstructionFromMetadata(metadata: ScanMetadata): ReconstructionState {
   const wallColor = metadata.wallColorHex?.trim() || "#d8d1c5";
@@ -51,5 +52,12 @@ export function applyReconstructionEvent(state: ReconstructionState, event: Reco
     annotations: exists
       ? state.annotations.map((annotation) => annotation.id === event.annotation.id ? event.annotation : annotation)
       : [...state.annotations, event.annotation],
+  };
+}
+
+export function reconstructionPayload(metadata: ScanMetadata, modelUrl: string, mode: ReconstructionMode) {
+  return {
+    mode,
+    state: { ...reconstructionFromMetadata(metadata), modelUrl },
   };
 }

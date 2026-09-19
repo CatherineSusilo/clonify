@@ -66,7 +66,10 @@ export default function ViewerPage({ params }: { params: Promise<{ id: string }>
   }, [id, router]);
 
   useEffect(() => {
-    loadScan();
+    const timer = window.setTimeout(() => {
+      void loadScan();
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [loadScan]);
 
   if (!scan) {

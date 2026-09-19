@@ -198,8 +198,10 @@ export function FloorPlanPanel({
 
   useEffect(() => {
     if (lat == null || lng == null) {
-      setPositioningStatus("error");
-      setPositioningError("No geocoded location for this scan");
+      queueMicrotask(() => {
+        setPositioningStatus("error");
+        setPositioningError("No geocoded location for this scan");
+      });
       return;
     }
     fetch(`/api/positioning/refine?lat=${lat}&lng=${lng}`)

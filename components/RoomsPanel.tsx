@@ -214,7 +214,7 @@ export function RoomsPanel({
             <p className="mt-3 text-sm">
               {route === null ? (
                 <span className="text-amber">
-                  No connected path yet — use "Connect" on a room to link it to its neighbors.
+                  No connected path yet — use &ldquo;Connect&rdquo; on a room to link it to its neighbors.
                 </span>
               ) : (
                 <span className="text-signal">{route.map((r) => r.name).join(" → ")}</span>
