@@ -8,6 +8,7 @@ import { findPublicBuildingFootprint } from "@/lib/osmBuilding";
 import { analyzeBlueprint } from "@/lib/blueprintAnalysis";
 import { searchInteriorPlaceImages, searchPublicBlueprints } from "@/lib/imageSearch";
 import { analyzeImageWithOpenCV } from "@/lib/imageAnalysis";
+import { safeFetch } from "@/lib/safeFetch";
 import { enqueueScanReconstruction } from "@/lib/queue";
 import { ROLES } from "@/lib/roles";
 
@@ -169,7 +170,7 @@ async function createScan(request: Request, user: NonNullable<Awaited<ReturnType
   try {
     const blueprintUrl = (JSON.parse(publicBlueprints) as { url: string }[])[0]?.url;
     const analysisSource = blueprintUrl
-      ? Buffer.from(await (await fetch(blueprintUrl)).arrayBuffer())
+      ? Buffer.from(await (await safeFetch(blueprintUrl)).arrayBuffer())
       : photos[0]
         ? Buffer.from(await photos[0].arrayBuffer())
         : null;
