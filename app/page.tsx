@@ -1,98 +1,44 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
-import { ROLE_INFO, ROLES } from "@/lib/roles";
+import { ImmersiveWorkspace } from "@/components/ImmersiveWorkspace";
+
+const capabilities = [
+  ["01", "Capture once", "Bring phone photos, 360° panoramas, depth, or connected cameras. MapAnything-inspired metric reconstruction keeps scale in the scene."],
+  ["02", "Choose your view", "Switch from a bird's-eye blueprint to an immersive 3D twin or a live camera overlay without losing your route or context."],
+  ["03", "Make it useful", "Navigate a guest, sell a property, or plan the renovation. One spatial source of truth, tuned to the job in front of you."],
+];
 
 export default async function Home() {
   const user = await getCurrentUser();
   const primaryHref = user ? (user.role ? "/scans" : "/onboarding") : "/signup";
-  const primaryLabel = user ? (user.role ? "Open my scans" : "Finish setup") : "Start a scan";
 
   return (
-    <div className="flex flex-1 flex-col">
-      <section className="mx-auto grid w-full max-w-6xl gap-10 px-6 py-16 lg:grid-cols-[1.1fr_1fr] lg:items-center lg:py-24">
-        <div>
-          <h1 className="glow font-display max-w-md text-4xl font-medium leading-[1.1] sm:text-5xl">
-            Map every room before you walk in.
-          </h1>
-          <p className="mt-6 max-w-md text-lg text-muted">
-            Photograph a space and Clonify builds a walkable, AR-ready 3D
-            environment: floor plan, room-to-room navigation, and the
-            measurements your job actually needs — slope, clearance, square
-            footage, damage.
-          </p>
-          <div className="mt-8 flex flex-wrap gap-4">
-            <Link
-              href={primaryHref}
-              className="border border-blueprint-light bg-blueprint px-6 py-3 font-medium hover:bg-blueprint/80"
-            >
-              {primaryLabel}
-            </Link>
-            <Link
-              href="/demo"
-              className="border border-line px-6 py-3 font-medium text-muted hover:border-muted hover:text-ink-text"
-            >
-              Explore the demo
-            </Link>
-          </div>
+    <main className="flex-1">
+      <section className="hero-section">
+        <div className="hero-copy">
+          <p className="eyebrow"><span className="live-dot" /> SPATIAL INTELLIGENCE FOR EVERY ROOM</p>
+          <h1>One building.<br /><em>Every point of view.</em></h1>
+          <p className="hero-lede">Clonify turns connected camera views into a metric digital twin you can navigate, showcase, and renovate — from a phone, headset, smart glasses, or browser.</p>
+          <div className="hero-actions"><Link href={primaryHref} className="primary-button">Build your first twin <span>↗</span></Link><Link href="/demo" className="secondary-button">Explore Harbour House</Link></div>
+          <div className="hero-proof"><span><strong>2D</strong> blueprint</span><span><strong>3D</strong> immersive</span><span><strong>LIVE</strong> camera guidance</span></div>
         </div>
-
-        <div className="tick relative border border-line bg-ink-soft p-2">
-          <model-viewer
-            suppressHydrationWarning
-            src="/api/demo-model"
-            alt="Sample reconstructed room"
-            camera-controls
-            auto-rotate
-            shadow-intensity="1"
-            exposure="1"
-            style={{ width: "100%", height: "360px", backgroundColor: "#040a05" }}
-          />
-          <p className="mt-2 font-mono text-xs text-muted">sample reconstruction — demo model</p>
+        <div className="hero-orbit" aria-label="Clonify spatial intelligence preview">
+          <div className="orbit-ring ring-one" /><div className="orbit-ring ring-two" /><div className="orbit-core"><span className="core-crosshair">+</span><span className="core-label">METRIC<br />TWIN</span></div>
+          <div className="orbit-tag tag-top">● 94% confidence</div><div className="orbit-tag tag-right">⌖ Level 02 / 03</div><div className="orbit-tag tag-bottom">↗ Connected · 12 views</div>
+          <div className="orbit-floor floor-back" /><div className="orbit-floor floor-front" />
         </div>
       </section>
 
-      <section className="border-t border-line">
-        <div className="mx-auto max-w-6xl px-6 py-16">
-          <h2 className="font-display text-2xl font-medium">Built around what you&apos;re there to do</h2>
-          <p className="mt-2 max-w-xl text-muted">
-            Onboarding sets your default fields, tools, and exports — no
-            generic dashboard to configure.
-          </p>
+      <ImmersiveWorkspace />
 
-          <div className="mt-10 divide-y divide-line border-y border-line">
-            {ROLES.map((role) => {
-              const info = ROLE_INFO[role];
-              return (
-                <div
-                  key={role}
-                  className="grid gap-2 py-6 sm:grid-cols-[1fr_1.4fr] sm:items-center sm:gap-8"
-                >
-                  <h3 className="font-display text-lg font-medium">{info.label}</h3>
-                  <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
-                    <p className="text-sm text-muted">{info.tagline}</p>
-                    <p className="font-mono text-xs text-blueprint-light">{info.sdg}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+      <section className="capability-section">
+        <div className="section-intro"><p className="eyebrow">THE CLONIFY LOOP</p><h2>From a camera feed to a place people can understand.</h2><p>Built for the moments where a floor plan is not enough — and a 3D model alone is too much.</p></div>
+        <div className="capability-grid">{capabilities.map(([number, title, description]) => <article key={number} className="capability-card"><span className="capability-number">{number}</span><h3>{title}</h3><p>{description}</p></article>)}</div>
       </section>
 
-      <section className="border-t border-line">
-        <div className="mx-auto flex max-w-6xl flex-col items-start gap-4 px-6 py-16 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="font-display text-2xl font-medium">Ready to scan a space?</h2>
-            <p className="mt-2 text-muted">Free to start. One active scan, no card required.</p>
-          </div>
-          <Link
-            href={primaryHref}
-            className="shrink-0 border border-blueprint-light bg-blueprint px-6 py-3 font-medium hover:bg-blueprint/80"
-          >
-            {user ? "Continue" : "Create an account"}
-          </Link>
-        </div>
-      </section>
-    </div>
+      <section className="role-section"><div><p className="eyebrow">ONE PRODUCT · YOUR ROLE SETS THE STARTING POINT</p><h2>Spatial context that moves with the work.</h2></div><div className="role-cards"><article><span>◌</span><h3>For visitors</h3><p>Step-free indoor routes, live camera arrows, and smart voice directions that reroute when the building surprises you.</p></article><article><span>◈</span><h3>For property teams</h3><p>A shareable property twin with AR/VR walkthroughs, guided tours, and a high-confidence view of every room.</p></article><article><span>⌁</span><h3>For builders</h3><p>Capture progress, pin issues, measure conditions, and move from existing space to a renovation plan.</p></article></div></section>
+
+      <section className="cta-section"><p className="eyebrow">READY WHEN THE SPACE IS</p><h2>Give every room a clearer next step.</h2><p>Start with a phone. Connect more when the project needs it.</p><Link href={primaryHref} className="primary-button">Create your Clonify twin <span>↗</span></Link></section>
+    </main>
   );
 }

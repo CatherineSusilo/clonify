@@ -24,6 +24,14 @@ type ReferenceImage = {
   height?: number;
 };
 
+type BlueprintSheet = {
+  url: string;
+  title: string;
+  kind: string;
+  retrievalStatus: string;
+  analysis?: { edgePixelRatio?: number; largestContourCorners?: number };
+};
+
 type Scan = {
   id: string;
   role: RoleKey;
@@ -36,6 +44,8 @@ type Scan = {
   placeTitle: string | null;
   blueprintSource: string | null;
   referenceImages: string;
+  publicBlueprints: string;
+  imageAnalysis: string | null;
   rooms: RoomSummary[];
 };
 
@@ -87,6 +97,7 @@ export default function ViewerPage({ params }: { params: Promise<{ id: string }>
     ? JSON.parse(scan.blueprintSource)
     : null;
   const referenceImages: ReferenceImage[] = JSON.parse(scan.referenceImages || "[]");
+  const blueprintSheets: BlueprintSheet[] = JSON.parse(scan.publicBlueprints || "[]");
 
   return (
     <div className="flex flex-1 flex-col">
@@ -154,6 +165,23 @@ export default function ViewerPage({ params }: { params: Promise<{ id: string }>
                     title={`${img.source}: ${img.attribution}, ${img.license}`}
                     className="h-14 w-20 border border-line object-cover"
                   />
+                ))}
+              </div>
+            </div>
+          )}
+          {blueprintSheets.length > 0 && (
+            <div className="border border-line bg-ink-soft p-3 text-xs text-muted">
+              <p className="mb-1.5 text-blueprint-light">
+                Blueprint RAG · {blueprintSheets.filter((sheet) => sheet.retrievalStatus === "analyzed").length}/{blueprintSheets.length} sheets analyzed with OpenCV
+              </p>
+              <p className="mb-2">
+                Retrieved open public drawings are used as geometry evidence for the 3D conversion. Plans establish layout; elevations and sections add height and facade context.
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {blueprintSheets.map((sheet, index) => (
+                  <a key={`${sheet.url}-${index}`} href={sheet.url} target="_blank" rel="noreferrer" className="border border-line px-2 py-1 hover:border-muted">
+                    {sheet.kind} · {sheet.analysis?.largestContourCorners ?? "—"} corners
+                  </a>
                 ))}
               </div>
             </div>

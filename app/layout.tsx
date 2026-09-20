@@ -4,6 +4,7 @@ import Script from "next/script";
 import { Space_Grotesk, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import { NavBar } from "@/components/NavBar";
 import { SiteFooter } from "@/components/SiteFooter";
+import { PwaRegistration } from "@/components/PwaRegistration";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -25,9 +26,9 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Clonify — map every room before you walk in",
+  title: "Clonify — every point of view",
   description:
-    "Photograph a space and get a walkable, AR-ready 3D environment with room-to-room navigation — tailored to staging, damage assessment, accessibility audits, or retrofit planning.",
+    "One metric digital twin for indoor navigation, real-estate showcase, and building renovation.",
   icons: { icon: "/logo.png" },
 };
 
@@ -47,6 +48,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         />
       </head>
       <body className="flex min-h-full flex-col bg-ink text-ink-text">
+        <PwaRegistration />
         <NavBar />
         {children}
         <SiteFooter />

@@ -11,6 +11,7 @@ Photograph a space. Get a walkable, AR-ready 3D environment with floor plans, ro
 - Stripe Checkout for Pro / Enterprise
 - OpenStreetMap / Nominatim / Wikimedia for public-building context
 - TRELLIS (Hugging Face Space) for photo-to-3D when available; procedural GLB fallback otherwise
+- MapAnything (optional local Python/PyTorch bridge) for metric multi-view geometry, camera poses, scale, and confidence before GLB conversion
 
 ## Local setup
 
@@ -22,6 +23,33 @@ npx prisma generate
 docker compose up -d   # MinIO + Valkey (optional)
 npm run dev
 ```
+
+### Optional local MapAnything inference
+
+Clonify can run the open-source MapAnything model locally before the existing
+TRELLIS GLB conversion. This keeps camera poses, metric scale, confidence, and
+3D bounds attached to the scan without sending imagery to a hosted
+MapAnything service.
+
+```bash
+git clone https://github.com/facebookresearch/map-anything.git
+cd map-anything
+conda create -n mapanything python=3.12 -y
+conda activate mapanything
+pip install -e .
+pip install -r /path/to/clonify/services/mapanything/requirements.txt
+uvicorn --app-dir /path/to/clonify/services/mapanything app:app --host 127.0.0.1 --port 8787
+```
+
+Then set `MAP_ANYTHING_URL="http://127.0.0.1:8787"` in `.env` and restart
+Clonify. Conservative local defaults send four views per reconstruction, use
+one inference minibatch, cap CPU inference at two threads, and load the model
+only when the first scan arrives. Tune `MAP_ANYTHING_MAX_VIEWS` or
+`MAP_ANYTHING_CPU_THREADS` only when your machine has headroom. MapAnything
+provides metric geometry evidence; the existing TRELLIS adapter remains the
+GLB conversion stage. If the bridge is not configured or unavailable,
+reconstruction continues with the existing OpenCV/fallback path and records
+that status in scan metadata.
 
 Open [http://localhost:3000](http://localhost:3000).
 

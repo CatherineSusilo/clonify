@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+python-multipart
+torch
+numpy
+pillow
+# Install MapAnything from the cloned facebookresearch/map-anything checkout:
+# pip install -e /path/to/map-anything

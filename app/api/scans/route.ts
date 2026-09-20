@@ -6,7 +6,8 @@ import { getPlanLimits, isAtLimit } from "@/lib/plans";
 import { geocodeAddress } from "@/lib/geocode";
 import { findPublicBuildingFootprint } from "@/lib/osmBuilding";
 import { analyzeBlueprint } from "@/lib/blueprintAnalysis";
-import { searchInteriorPlaceImages, searchPublicBlueprints } from "@/lib/imageSearch";
+import { searchInteriorPlaceImages } from "@/lib/imageSearch";
+import { retrieveAndAnalyzeBlueprints, blueprintGeometryForModel } from "@/lib/blueprintPipeline";
 import { analyzeImageWithOpenCV } from "@/lib/imageAnalysis";
 import { safeFetch } from "@/lib/safeFetch";
 import { enqueueScanReconstruction } from "@/lib/queue";
@@ -64,6 +65,7 @@ export async function POST(request: Request) {
 async function createScan(request: Request, user: NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>) {
   const form = await request.formData();
   const placeTitle = String(form.get("placeTitle") ?? "").trim();
+  const buildingType = String(form.get("buildingType") ?? "other").trim();
   const requestedFloorCount = Number.parseInt(String(form.get("floorCount") ?? "1"), 10);
   const floorCount = Number.isFinite(requestedFloorCount) ? Math.max(1, Math.min(99, requestedFloorCount)) : 1;
   const street = String(form.get("street") ?? "");
@@ -138,7 +140,7 @@ async function createScan(request: Request, user: NonNullable<Awaited<ReturnType
   const placeQuery = placeTitle || [street, city, state, country].filter(Boolean).join(", ");
   if (placeQuery) {
     try {
-      const images = await searchInteriorPlaceImages(placeQuery, 8);
+      const images = await searchInteriorPlaceImages(`${placeQuery} ${buildingType}`, 8);
       referenceImages = JSON.stringify(images);
     } catch (err) {
       console.warn(
@@ -154,7 +156,7 @@ async function createScan(request: Request, user: NonNullable<Awaited<ReturnType
   let publicBlueprints: string = "[]";
   if (placeQuery) {
     try {
-      const blueprints = await searchPublicBlueprints(placeQuery, 4);
+      const blueprints = await retrieveAndAnalyzeBlueprints(placeQuery, buildingType, 10);
       publicBlueprints = JSON.stringify(blueprints);
     } catch (err) {
       console.warn(
@@ -234,7 +236,17 @@ async function createScan(request: Request, user: NonNullable<Awaited<ReturnType
       blueprintKey,
       referenceImages,
       publicBlueprints,
-      imageAnalysis,
+      imageAnalysis: JSON.stringify({
+        primary: imageAnalysis ? JSON.parse(imageAnalysis) : null,
+        buildingType,
+        sheets: JSON.parse(publicBlueprints).map((sheet: { title: string; kind: string; analysis?: unknown }) => ({
+          title: sheet.title,
+          kind: sheet.kind,
+          analysis: sheet.analysis ?? null,
+        })),
+        modelGeometry: blueprintGeometryForModel(JSON.parse(publicBlueprints)),
+      }),
+      metadata: JSON.stringify({ ...JSON.parse(metadataRaw), buildingType }),
       lat: geo?.lat,
       lng: geo?.lng,
       blueprintSource,

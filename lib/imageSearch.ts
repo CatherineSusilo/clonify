@@ -12,6 +12,11 @@ export type ReferenceImage = {
   interiorScore: number;
 };
 
+export type BlueprintReference = ReferenceImage & {
+  sheetType?: "floor-plan" | "site-plan" | "elevation" | "section" | "unknown";
+  mimeType?: string;
+};
+
 const INTERIOR_TERMS = /\b(interior|indoor|inside|room|lobby|foyer|hall|corridor|kitchen|bedroom|bathroom|living|dining|office|suite|apartment|gallery|classroom|auditorium|stairwell)\b/i;
 const EXTERIOR_TERMS = /\b(exterior|outside|facade|façade|front of|aerial|street|skyline|grounds|parking)\b/i;
 
@@ -57,9 +62,16 @@ const BLUEPRINT_TERMS = /\b(floor ?plan|blueprint|site plan|building plan|plan v
  * Wikimedia Commons and Openverse with plan-specific terms, then keeps only
  * results whose title actually reads as a plan (avoids photos that merely
  * mention "plan" in passing). */
-export async function searchPublicBlueprints(placeOrAddress: string, limit = 4): Promise<ReferenceImage[]> {
+export async function searchPublicBlueprints(placeOrAddress: string, limit = 4, buildingType?: string): Promise<BlueprintReference[]> {
   const perRequest = Math.max(limit, 8);
-  const queries = [`${placeOrAddress} floor plan`, `${placeOrAddress} blueprint`];
+  const typeHint = buildingType ? ` ${buildingType}` : "";
+  const queries = [
+    `${placeOrAddress}${typeHint} floor plan`,
+    `${placeOrAddress}${typeHint} site plan`,
+    `${placeOrAddress}${typeHint} elevation`,
+    `${placeOrAddress}${typeHint} section drawing`,
+    `${placeOrAddress}${typeHint} blueprint`,
+  ];
   const results = await Promise.all(
     queries.flatMap((query) => [
       searchCommonsByText(query, perRequest).then((images) => ({ source: "Wikimedia Commons" as const, images })),
@@ -69,7 +81,7 @@ export async function searchPublicBlueprints(placeOrAddress: string, limit = 4):
 
   const combined = results.flatMap(({ images, source }) =>
     images
-      .filter((image) => BLUEPRINT_TERMS.test(image.title))
+      .filter((image) => BLUEPRINT_TERMS.test(image.title) || /\b(elevation|section|facade|façade|site plan)\b/i.test(image.title))
       .map((image) => ({ ...image, source, interiorScore: (image.width ?? 0) * (image.height ?? 0) }))
   );
 
@@ -79,5 +91,9 @@ export async function searchPublicBlueprints(placeOrAddress: string, limit = 4):
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
-  }).sort((a, b) => b.interiorScore - a.interiorScore).slice(0, limit);
+  }).sort((a, b) => {
+    const aSheet = /\b(elevation|section|facade|façade|site plan)\b/i.test(a.title) ? 1 : 0;
+    const bSheet = /\b(elevation|section|facade|façade|site plan)\b/i.test(b.title) ? 1 : 0;
+    return bSheet - aSheet || b.interiorScore - a.interiorScore;
+  }).slice(0, limit);
 }

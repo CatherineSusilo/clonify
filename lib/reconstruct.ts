@@ -3,6 +3,7 @@ import { DEFAULT_ROOMS } from "./defaultRooms";
 import type { RoleKey } from "./roles";
 import { downloadPhoto } from "./storage";
 import { reconstructWithTrellis, type SourceImage } from "./trellis";
+import { reconstructWithMapAnything } from "./mapAnything";
 
 const MAX_SOURCE_IMAGES = 24;
 
@@ -35,6 +36,7 @@ async function gatherSourceImages(scanId: string, scan: {
   photoKeys: string;
   blueprintSource: string | null;
   referenceImages: string;
+  publicBlueprints: string;
 }): Promise<SourceImage[]> {
   const images: SourceImage[] = [];
 
@@ -46,6 +48,17 @@ async function gatherSourceImages(scanId: string, scan: {
       images.push({ bytes: await downloadPhoto(scan.blueprintKey), filename: "blueprint.jpg" });
     } catch {
       // fall through to other sources
+    }
+
+    // Retrieved public sheets are kept as first-class reconstruction evidence.
+    // Plans describe layout while elevations/sections supply height and facade
+    // cues; TRELLIS receives all available sheets before room photographs.
+    try {
+      const blueprintSheets = JSON.parse(scan.publicBlueprints || "[]") as { url: string; title: string; retrievalStatus?: string }[];
+      const remoteBlueprints = blueprintSheets.filter((sheet) => sheet.retrievalStatus !== "unavailable" && sheet.url);
+      images.push(...(await downloadRemoteImages(remoteBlueprints, MAX_SOURCE_IMAGES - images.length)));
+    } catch {
+      // Keep captured photos as the source of truth if public sheets are malformed.
     }
   }
 
@@ -132,6 +145,17 @@ async function reconstructScanInner(scanId: string) {
   let modelUrl: string | null = null;
 
   const sourceImages = await gatherSourceImages(scanId, scan);
+  let mapAnything: Awaited<ReturnType<typeof reconstructWithMapAnything>> | null = null;
+  if (sourceImages.length > 0 && process.env.MAP_ANYTHING_URL) {
+    try {
+      mapAnything = await reconstructWithMapAnything(sourceImages);
+    } catch (err) {
+      console.warn(
+        `[reconstruct] MapAnything unavailable for scan ${scanId}, continuing with TRELLIS:`,
+        err instanceof Error ? err.message : err
+      );
+    }
+  }
   if (sourceImages.length > 0) {
     try {
       modelUrl = await reconstructWithTrellis(sourceImages);
@@ -145,7 +169,14 @@ async function reconstructScanInner(scanId: string) {
 
   await prisma.scan.update({
     where: { id: scanId },
-    data: { status: "ready", modelUrl },
+    data: {
+      status: "ready",
+      modelUrl,
+      metadata: JSON.stringify({
+        ...JSON.parse(scan.metadata || "{}"),
+        mapAnything: mapAnything ?? { provider: "map-anything", status: "not-configured" },
+      }),
+    },
   });
 
   const existingRooms = await prisma.room.count({ where: { scanId } });

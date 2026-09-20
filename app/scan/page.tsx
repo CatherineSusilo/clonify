@@ -6,6 +6,7 @@ import { ROLE_INFO, type RoleKey } from "@/lib/roles";
 import { ROLE_SCAN_FIELDS } from "@/lib/scanFields";
 import { AddressAutocomplete } from "@/components/AddressAutocomplete";
 import type { AddressSuggestion } from "@/lib/geocode";
+import { BUILDING_TYPES } from "@/lib/buildingTypes";
 
 export default function ScanPage() {
   const router = useRouter();
@@ -13,6 +14,7 @@ export default function ScanPage() {
   const [loading, setLoading] = useState(true);
   const [address, setAddress] = useState({ street: "", city: "", state: "", country: "" });
   const [placeTitle, setPlaceTitle] = useState("");
+  const [buildingType, setBuildingType] = useState("other");
   const [floorCount, setFloorCount] = useState(1);
   const [metadata, setMetadata] = useState<Record<string, string>>({});
   const [photos, setPhotos] = useState<File[]>([]);
@@ -53,6 +55,7 @@ export default function ScanPage() {
 
     const form = new FormData();
     form.set("placeTitle", placeTitle);
+    form.set("buildingType", buildingType);
     form.set("floorCount", String(floorCount));
     form.set("street", address.street);
     form.set("city", address.city);
@@ -93,9 +96,21 @@ export default function ScanPage() {
             onChange={(e) => setPlaceTitle(e.target.value)}
           />
           <p className="text-xs text-muted">
-            We&apos;ll search open, licensed sources for full-size indoor photos only
-            to help build a fuller 3D reconstruction.
+            We&apos;ll use the place name and building type to retrieve open, licensed
+            reference images and public blueprint sheets when available.
           </p>
+        </fieldset>
+
+        <fieldset className="space-y-3">
+          <legend className="mb-2 text-sm text-muted">Building type</legend>
+          <select
+            value={buildingType}
+            onChange={(event) => setBuildingType(event.target.value)}
+            className="w-full border border-line bg-ink-soft px-4 py-2.5 focus:border-blueprint-light focus:outline-none"
+          >
+            {BUILDING_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
+          </select>
+          <p className="text-xs text-muted">This improves public-building retrieval: museums, schools, libraries, hospitals, civic buildings, stations, venues, and more.</p>
         </fieldset>
 
         <fieldset>
@@ -214,7 +229,7 @@ export default function ScanPage() {
 
         <fieldset>
           <legend className="mb-2 text-sm text-muted">
-            Floor plan / blueprint <span className="text-muted/70">(optional — used directly if we can&apos;t find one online)</span>
+            Floor plan / blueprint <span className="text-muted/70">(optional — analyzed alongside any retrieved plans, site plans, elevations, and sections)</span>
           </legend>
           <label className="flex cursor-pointer flex-col items-center justify-center border border-dashed border-line px-6 py-6 text-center hover:border-muted">
             <input
@@ -224,7 +239,7 @@ export default function ScanPage() {
               onChange={(e) => setBlueprint(e.target.files?.[0] ?? null)}
             />
             <span className="text-sm text-muted">
-              {blueprint ? blueprint.name : "Choose a floor plan image"}
+              {blueprint ? blueprint.name : "Choose a plan, elevation, or section image"}
             </span>
           </label>
         </fieldset>
