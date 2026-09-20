@@ -41,8 +41,8 @@ The Next.js app starts this service automatically during Node startup; you do
 not need to run a second server command. Set
 `MAP_ANYTHING_PYTHON` if MapAnything is installed in a virtualenv/conda
 environment, then restart Clonify. Conservative local defaults send four views per reconstruction, use
-one inference minibatch, cap CPU inference at two threads, and load the model
-only when the first scan arrives. Tune `MAP_ANYTHING_MAX_VIEWS` or
+one inference minibatch, cap CPU inference at two threads, and warm the model
+before the first scan arrives. Tune `MAP_ANYTHING_MAX_VIEWS` or
 `MAP_ANYTHING_CPU_THREADS` only when your machine has headroom. CPU inference
 may take several minutes locally; `MAP_ANYTHING_TIMEOUT_MS` defaults to 15
 minutes. MapAnything

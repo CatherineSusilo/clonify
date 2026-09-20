@@ -36,9 +36,10 @@ def get_model():
 
 
 @app.get("/health")
-async def health():
-    # Readiness does not load the model; the first reconstruction loads it lazily.
-    return JSONResponse({"status": "ok", "provider": "map-anything"})
+async def health(ready: bool = False):
+    if ready:
+        get_model()
+    return JSONResponse({"status": "ok", "provider": "map-anything", "modelReady": model is not None})
 
 
 @app.post("/infer")
@@ -52,7 +53,7 @@ async def infer(images: Annotated[list[UploadFile], File()]):
             path = Path(directory) / f"{index}.jpg"
             try:
                 with Image.open(source) as image:
-                    image.thumbnail((1280, 1280), Image.Resampling.LANCZOS)
+                    image.thumbnail((768, 768), Image.Resampling.LANCZOS)
                     image.convert("RGB").save(path, format="JPEG", quality=92)
                 paths.append(str(path))
             except (UnidentifiedImageError, OSError):

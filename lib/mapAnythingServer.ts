@@ -15,10 +15,12 @@ function portFromUrl(url: string) {
 
 async function isReady(url: string) {
   try {
-    const response = await fetch(`${url.replace(/\/$/, "")}/health`, {
-      signal: AbortSignal.timeout(1000),
+    const response = await fetch(`${url.replace(/\/$/, "")}/health?ready=true`, {
+      signal: AbortSignal.timeout(900_000),
     });
-    return response.ok;
+    if (!response.ok) return false;
+    const data = (await response.json()) as { modelReady?: boolean };
+    return data.modelReady === true;
   } catch {
     return false;
   }
@@ -46,7 +48,7 @@ export async function ensureMapAnythingService(): Promise<string> {
     });
     process.once("exit", () => child.kill());
 
-    const deadline = Date.now() + 30_000;
+    const deadline = Date.now() + 900_000;
     while (Date.now() < deadline) {
       if (await isReady(url)) return url;
       if (child.exitCode !== null) {
