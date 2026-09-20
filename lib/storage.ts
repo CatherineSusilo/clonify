@@ -83,7 +83,7 @@ export async function getPhotoUrl(key: string): Promise<string> {
 }
 
 /** Downloads an object's bytes server-side — used to hand a stored photo to
- * an external reconstruction service (e.g. TRELLIS) that needs the file
+ * a reconstruction service that needs the file
  * content itself, not a browser-facing URL. */
 export async function downloadPhoto(key: string): Promise<Buffer> {
   const res = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: key }));

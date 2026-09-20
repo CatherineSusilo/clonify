@@ -1,4 +1,4 @@
-import type { SourceImage } from "./trellis";
+export type SourceImage = { bytes: Buffer; filename: string };
 
 export type MapAnythingResult = {
   provider: "map-anything";
@@ -9,6 +9,7 @@ export type MapAnythingResult = {
   bounds: { min: [number, number, number]; max: [number, number, number] } | null;
   cameraPoses: number[][][] | null;
   pointCount: number;
+  points?: [number, number, number][];
 };
 
 /** Calls the local MapAnything inference service. The service is intentionally
@@ -16,7 +17,7 @@ export type MapAnythingResult = {
  * GPU-aware model loading. No external hosted inference is used. */
 export async function reconstructWithMapAnything(images: SourceImage[]): Promise<MapAnythingResult> {
   const endpoint = process.env.MAP_ANYTHING_URL;
-  if (!endpoint) throw new Error("MAP_ANYTHING_URL is not configured");
+  if (!endpoint) throw new Error("MapAnything is not configured. Start the local service and set MAP_ANYTHING_URL.");
   if (images.length === 0) throw new Error("MapAnything needs at least one image");
 
   const form = new FormData();

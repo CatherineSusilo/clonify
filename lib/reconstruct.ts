@@ -2,8 +2,7 @@ import { prisma } from "./prisma";
 import { DEFAULT_ROOMS } from "./defaultRooms";
 import type { RoleKey } from "./roles";
 import { downloadPhoto } from "./storage";
-import { reconstructWithTrellis, type SourceImage } from "./trellis";
-import { reconstructWithMapAnything } from "./mapAnything";
+import { reconstructWithMapAnything, type SourceImage } from "./mapAnything";
 
 const MAX_SOURCE_IMAGES = 24;
 
@@ -41,8 +40,7 @@ async function gatherSourceImages(scanId: string, scan: {
   const images: SourceImage[] = [];
 
   // A manually supplied floor plan is the strongest ground truth available
-  // for this space's layout, so it goes first (TRELLIS treats the first
-  // image as primary).
+  // for this space's layout, so it goes first.
   if (scan.blueprintKey) {
     try {
       images.push({ bytes: await downloadPhoto(scan.blueprintKey), filename: "blueprint.jpg" });
@@ -140,39 +138,16 @@ async function reconstructScanInner(scanId: string) {
   const scan = await prisma.scan.findUnique({ where: { id: scanId } });
   if (!scan) return;
 
-  // modelUrl stays null until we have a real reconstruction; the viewer
-  // falls back to the procedurally generated room mockup (/api/scans/:id/model)
-  // when it's null, instead of an unrelated placeholder model.
-  let modelUrl: string | null = null;
-
   const sourceImages = await gatherSourceImages(scanId, scan);
-  let mapAnything: Awaited<ReturnType<typeof reconstructWithMapAnything>> | null = null;
-  if (sourceImages.length > 0 && process.env.MAP_ANYTHING_URL) {
-    try {
-      mapAnything = await reconstructWithMapAnything(sourceImages);
-    } catch (err) {
-      console.warn(
-        `[reconstruct] MapAnything unavailable for scan ${scanId}, continuing with TRELLIS:`,
-        err instanceof Error ? err.message : err
-      );
-    }
-  }
-  if (sourceImages.length > 0) {
-    try {
-      modelUrl = await reconstructWithTrellis(sourceImages);
-    } catch (err) {
-      console.warn(
-        `[reconstruct] TRELLIS reconstruction unavailable for scan ${scanId}, using room mockup:`,
-        err instanceof Error ? err.message : err
-      );
-    }
-  }
+  if (sourceImages.length === 0) throw new Error("No blueprint or image evidence available for MapAnything.");
+  const mapAnything = await reconstructWithMapAnything(sourceImages);
+  if (!mapAnything.points?.length) throw new Error("MapAnything returned no renderable metric points.");
 
   await prisma.scan.update({
     where: { id: scanId },
     data: {
       status: "ready",
-      modelUrl,
+      modelUrl: null,
       metadata: JSON.stringify({
         ...JSON.parse(scan.metadata || "{}"),
         mapAnything: mapAnything ?? { provider: "map-anything", status: "not-configured" },

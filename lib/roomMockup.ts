@@ -66,10 +66,7 @@ export function buildRoomMockupGlb(options: {
 /** Extrudes a real 2D footprint polygon (already in flat local meters, e.g.
  * from blueprintAnalysis.projectToLocalMeters or an OpenCV-detected
  * contour) into an open-top 3D room: a floor matching the polygon's exact
- * shape plus one wall quad per polygon edge — the deterministic fallback
- * used when a real photo-to-3D reconstruction (TRELLIS) isn't available but
- * an actual floor plan is, so the shown room matches the real layout
- * instead of a generic box. */
+ * shape plus one wall quad per polygon edge. */
 export function buildBlueprintExtrusionGlb(
   footprint: { x: number; y: number }[],
   options: { height?: number; wallColorHex?: string; floorColorHex?: string } = {}
@@ -104,6 +101,56 @@ export function buildBlueprintExtrusionGlb(
   }
 
   return buildGlbFromFaces(parts);
+}
+
+/** Builds a compact glTF point cloud directly from MapAnything's metric
+ * world-space points. This keeps the local path honest: no generic box and no
+ * second image-to-3D model is substituted when MapAnything is enabled. */
+export function buildPointCloudGlb(points: [number, number, number][]): Buffer {
+  const finite = points.filter((point) => point.every(Number.isFinite)).slice(0, 12000);
+  if (finite.length === 0) throw new Error("Point cloud is empty");
+  const positions = finite.flat();
+  const ys = finite.map((point) => point[1]);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
+  const colors = finite.flatMap(([, y]) => {
+    const t = (y - minY) / (maxY - minY || 1);
+    return [0.2 + t * 0.3, 0.8 + t * 0.15, 0.45 + t * 0.4, 1];
+  });
+  const positionBytes = Buffer.from(new Float32Array(positions).buffer);
+  const colorBytes = Buffer.from(new Float32Array(colors).buffer);
+  const pad = (buffer: Buffer) => Buffer.concat([buffer, Buffer.alloc((4 - (buffer.length % 4)) % 4)]);
+  const positionOffset = 0;
+  const colorOffset = pad(positionBytes).length;
+  const bin = Buffer.concat([pad(positionBytes), pad(colorBytes)]);
+  const xs = finite.map((point) => point[0]);
+  const zs = finite.map((point) => point[2]);
+  const gltf = {
+    asset: { version: "2.0", generator: "clonify-map-anything" },
+    scene: 0,
+    scenes: [{ nodes: [0] }],
+    nodes: [{ mesh: 0 }],
+    meshes: [{
+      primitives: [{
+        attributes: { POSITION: 0, COLOR_0: 1 },
+        mode: 0,
+      }],
+    }],
+    accessors: [
+      {
+        bufferView: 0, componentType: 5126, count: finite.length, type: "VEC3",
+        min: [Math.min(...xs), Math.min(...ys), Math.min(...zs)],
+        max: [Math.max(...xs), Math.max(...ys), Math.max(...zs)],
+      },
+      { bufferView: 1, componentType: 5126, count: finite.length, type: "VEC4" },
+    ],
+    bufferViews: [
+      { buffer: 0, byteOffset: positionOffset, byteLength: positionBytes.length, target: 34962 },
+      { buffer: 0, byteOffset: colorOffset, byteLength: colorBytes.length, target: 34962 },
+    ],
+    buffers: [{ byteLength: bin.length }],
+  };
+  return packageGlb(gltf, bin);
 }
 
 function buildGlbFromFaces(parts: Face[]): Buffer {
@@ -193,5 +240,21 @@ function buildGlbFromFaces(parts: Face[]): Buffer {
   binChunkHeader.writeUInt32LE(binBuffer.length, 0);
   binChunkHeader.writeUInt32LE(0x004e4942, 4); // 'BIN\0'
 
+  return Buffer.concat([header, jsonChunkHeader, jsonPadded, binChunkHeader, binBuffer]);
+}
+
+function packageGlb(gltf: Record<string, unknown>, binBuffer: Buffer): Buffer {
+  const jsonStr = JSON.stringify(gltf);
+  const jsonPadded = Buffer.from(jsonStr + " ".repeat((4 - (jsonStr.length % 4)) % 4));
+  const header = Buffer.alloc(12);
+  header.writeUInt32LE(0x46546c67, 0);
+  header.writeUInt32LE(2, 4);
+  header.writeUInt32LE(12 + 8 + jsonPadded.length + 8 + binBuffer.length, 8);
+  const jsonChunkHeader = Buffer.alloc(8);
+  jsonChunkHeader.writeUInt32LE(jsonPadded.length, 0);
+  jsonChunkHeader.writeUInt32LE(0x4e4f534a, 4);
+  const binChunkHeader = Buffer.alloc(8);
+  binChunkHeader.writeUInt32LE(binBuffer.length, 0);
+  binChunkHeader.writeUInt32LE(0x004e4942, 4);
   return Buffer.concat([header, jsonChunkHeader, jsonPadded, binChunkHeader, binBuffer]);
 }

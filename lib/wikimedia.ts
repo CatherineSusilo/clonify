@@ -2,7 +2,7 @@
  * from Wikimedia Commons — free, open, no API key. Only runs when OSM
  * tagged the building with a `wikimedia_commons` file/category or a
  * `wikidata` id (common for landmarks, civic buildings, transit stations).
- * Fetching multiple angles (not just one photo) gives TRELLIS's multi-image
+ * Fetching multiple angles (not just one photo) gives reconstruction's multi-image
  * mode more to work with for a fuller, more faithful reconstruction. */
 export type CommonsImage = {
   url: string;

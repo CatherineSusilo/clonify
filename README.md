@@ -10,8 +10,7 @@ Photograph a space. Get a walkable, AR-ready 3D environment with floor plans, ro
 - MinIO (S3) for photos, Valkey/Redis + BullMQ for reconstruction jobs
 - Stripe Checkout for Pro / Enterprise
 - OpenStreetMap / Nominatim / Wikimedia for public-building context
-- TRELLIS (Hugging Face Space) for photo-to-3D when available; procedural GLB fallback otherwise
-- MapAnything (optional local Python/PyTorch bridge) for metric multi-view geometry, camera poses, scale, and confidence before GLB conversion
+- MapAnything (local Python/PyTorch bridge) for metric multi-view geometry, camera poses, scale, confidence, and the renderable point-cloud GLB
 
 ## Local setup
 
@@ -26,10 +25,8 @@ npm run dev
 
 ### Optional local MapAnything inference
 
-Clonify can run the open-source MapAnything model locally before the existing
-TRELLIS GLB conversion. This keeps camera poses, metric scale, confidence, and
-3D bounds attached to the scan without sending imagery to a hosted
-MapAnything service.
+Clonify runs the open-source MapAnything model locally and converts its bounded
+metric point cloud directly to a GLB. No hosted photo-to-3D service is used.
 
 ```bash
 git clone https://github.com/facebookresearch/map-anything.git
@@ -46,10 +43,8 @@ Clonify. Conservative local defaults send four views per reconstruction, use
 one inference minibatch, cap CPU inference at two threads, and load the model
 only when the first scan arrives. Tune `MAP_ANYTHING_MAX_VIEWS` or
 `MAP_ANYTHING_CPU_THREADS` only when your machine has headroom. MapAnything
-provides metric geometry evidence; the existing TRELLIS adapter remains the
-GLB conversion stage. If the bridge is not configured or unavailable,
-reconstruction continues with the existing OpenCV/fallback path and records
-that status in scan metadata.
+must be running for reconstruction; failures are surfaced instead of replaced
+with a generic room.
 
 Blueprint retrieval first searches the named place, then falls back to public
 building-type searches such as `school floor plan`, `museum elevation`, and

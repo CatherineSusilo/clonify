@@ -25,7 +25,7 @@ function rankInteriorImage(image: Omit<ReferenceImage, "interiorScore">, query: 
   if (EXTERIOR_TERMS.test(image.title)) return null;
   const area = (image.width ?? 0) * (image.height ?? 0);
   // The query is always interior-specific; title metadata can further boost
-  // confidence. Original URLs, rather than thumbnails, are kept for TRELLIS.
+  // confidence. Original URLs, rather than thumbnails, are kept for reconstruction.
   return { ...image, interiorScore: (INTERIOR_TERMS.test(text) ? 100 : 0) + Math.min(area / 100_000, 25) };
 }
 

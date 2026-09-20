@@ -78,6 +78,9 @@ async def infer(images: Annotated[list[UploadFile], File()]):
                 scales.append(float(scale.detach().float().mean().cpu()))
 
         merged = np.concatenate(points) if points else np.empty((0, 3))
+        if len(merged) > 12000:
+            sample = np.linspace(0, len(merged) - 1, 12000, dtype=np.int64)
+            merged = merged[sample]
         bounds = None
         if len(merged):
             bounds = {"min": merged.min(axis=0).tolist(), "max": merged.max(axis=0).tolist()}
@@ -91,4 +94,5 @@ async def infer(images: Annotated[list[UploadFile], File()]):
             "bounds": bounds,
             "cameraPoses": camera_poses or None,
             "pointCount": int(len(merged)),
+            "points": merged.astype(np.float32).tolist(),
         }
