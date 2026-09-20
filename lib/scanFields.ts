@@ -22,7 +22,6 @@ export const ROLE_SCAN_FIELDS: Record<RoleKey, FieldConfig[]> = {
     { name: "hazardNotes", label: "Structural Hazard Notes", type: "text" },
   ],
   ACCESSIBILITY_AUDIT: [
-    { name: "buildingType", label: "Building Type", type: "select", options: ["Public Transit", "Sidewalk", "School", "Government Building"] },
     { name: "mobilityStandard", label: "Mobility Standard Preset", type: "select", options: ["ADA (US)", "EN 301 549 (EU)", "AODA (Canada)"] },
   ],
   MEP_ENGINEER: [
