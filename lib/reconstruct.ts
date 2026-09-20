@@ -50,16 +50,17 @@ async function gatherSourceImages(scanId: string, scan: {
       // fall through to other sources
     }
 
-    // Retrieved public sheets are kept as first-class reconstruction evidence.
-    // Plans describe layout while elevations/sections supply height and facade
-    // cues; TRELLIS receives all available sheets before room photographs.
-    try {
-      const blueprintSheets = JSON.parse(scan.publicBlueprints || "[]") as { url: string; title: string; retrievalStatus?: string }[];
-      const remoteBlueprints = blueprintSheets.filter((sheet) => sheet.retrievalStatus !== "unavailable" && sheet.url);
-      images.push(...(await downloadRemoteImages(remoteBlueprints, MAX_SOURCE_IMAGES - images.length)));
-    } catch {
-      // Keep captured photos as the source of truth if public sheets are malformed.
-    }
+  }
+
+  // Retrieved public sheets are first-class reconstruction evidence whether
+  // or not the user also uploaded a local blueprint. Plans describe layout;
+  // elevations/sections add height and facade cues.
+  try {
+    const blueprintSheets = JSON.parse(scan.publicBlueprints || "[]") as { url: string; title: string; retrievalStatus?: string }[];
+    const remoteBlueprints = blueprintSheets.filter((sheet) => sheet.retrievalStatus === "analyzed" && sheet.url);
+    images.push(...(await downloadRemoteImages(remoteBlueprints, MAX_SOURCE_IMAGES - images.length)));
+  } catch {
+    // Keep captured photos as the source of truth if public sheets are malformed.
   }
 
   if (scan.panoramaKey) {

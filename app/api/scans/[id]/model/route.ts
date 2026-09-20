@@ -61,9 +61,18 @@ function resolveFootprintMeters(
 
   if (imageAnalysis) {
     try {
-      const parsed = JSON.parse(imageAnalysis) as { largestContourPoints?: { x: number; y: number }[] };
-      if (parsed.largestContourPoints && parsed.largestContourPoints.length >= 3) {
-        return normalizePixelPolygonToMeters(parsed.largestContourPoints);
+      const parsed = JSON.parse(imageAnalysis) as {
+        largestContourPoints?: { x: number; y: number }[];
+        primary?: { largestContourPoints?: { x: number; y: number }[] };
+        sheets?: Array<{ kind?: string; analysis?: { largestContourPoints?: { x: number; y: number }[] } }>;
+      };
+      const sheet = parsed.sheets?.find((candidate) => candidate.kind === "floor-plan" && candidate.analysis?.largestContourPoints?.length)
+        ?? parsed.sheets?.find((candidate) => candidate.analysis?.largestContourPoints?.length);
+      const points = parsed.largestContourPoints
+        ?? parsed.primary?.largestContourPoints
+        ?? sheet?.analysis?.largestContourPoints;
+      if (points && points.length >= 3) {
+        return normalizePixelPolygonToMeters(points);
       }
     } catch {
       // fall through to the generic box
