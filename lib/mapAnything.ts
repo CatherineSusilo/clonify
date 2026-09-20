@@ -30,6 +30,9 @@ export async function reconstructWithMapAnything(images: SourceImage[]): Promise
     body: form,
     signal: AbortSignal.timeout(180_000),
   });
-  if (!response.ok) throw new Error(`MapAnything inference failed: ${response.status}`);
+  if (!response.ok) {
+    const detail = await response.text().catch(() => "");
+    throw new Error(`MapAnything inference failed: ${response.status}${detail ? ` — ${detail.slice(0, 240)}` : ""}`);
+  }
   return (await response.json()) as MapAnythingResult;
 }

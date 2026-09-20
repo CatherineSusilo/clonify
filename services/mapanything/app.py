@@ -13,6 +13,7 @@ import numpy as np
 import torch
 from fastapi import FastAPI, File, UploadFile
 from fastapi.responses import JSONResponse
+from PIL import Image, UnidentifiedImageError
 from mapanything.models import MapAnything
 from mapanything.utils.image import load_images
 
@@ -46,10 +47,21 @@ async def infer(images: Annotated[list[UploadFile], File()]):
         paths = []
         max_views = max(1, min(8, int(os.environ.get("MAP_ANYTHING_MAX_VIEWS", "4"))))
         for index, upload in enumerate(images[:max_views]):
-            path = Path(directory) / f"{index}-{upload.filename or 'view.jpg'}"
-            path.write_bytes(await upload.read())
-            paths.append(str(path))
+            source = Path(directory) / f"{index}-source"
+            source.write_bytes(await upload.read())
+            path = Path(directory) / f"{index}.jpg"
+            try:
+                with Image.open(source) as image:
+                    image.convert("RGB").save(path, format="JPEG", quality=92)
+                paths.append(str(path))
+            except (UnidentifiedImageError, OSError):
+                continue
 
+        if not paths:
+            return JSONResponse(
+                {"error": "MapAnything received no decodable image files."},
+                status_code=422,
+            )
         views = load_images(paths)
         with torch.inference_mode():
             predictions = get_model().infer(
