@@ -71,6 +71,9 @@ export async function searchPublicBlueprints(placeOrAddress: string, limit = 4, 
     `${placeOrAddress}${typeHint} elevation`,
     `${placeOrAddress}${typeHint} section drawing`,
     `${placeOrAddress}${typeHint} blueprint`,
+    `${buildingType || "public building"} floor plan`,
+    `${buildingType || "public building"} architectural drawing`,
+    `${buildingType || "building"} elevation plan`,
   ];
   const results = await Promise.all(
     queries.flatMap((query) => [
@@ -81,7 +84,10 @@ export async function searchPublicBlueprints(placeOrAddress: string, limit = 4, 
 
   const combined = results.flatMap(({ images, source }) =>
     images
-      .filter((image) => BLUEPRINT_TERMS.test(image.title) || /\b(elevation|section|facade|façade|site plan)\b/i.test(image.title))
+      .filter((image) =>
+        BLUEPRINT_TERMS.test(image.title) ||
+        /\b(elevation|section|facade|façade|site plan|architectural drawing|building drawing|campus map|schematic)\b/i.test(image.title)
+      )
       .map((image) => ({ ...image, source, interiorScore: (image.width ?? 0) * (image.height ?? 0) }))
   );
 

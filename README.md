@@ -51,6 +51,13 @@ GLB conversion stage. If the bridge is not configured or unavailable,
 reconstruction continues with the existing OpenCV/fallback path and records
 that status in scan metadata.
 
+Blueprint retrieval first searches the named place, then falls back to public
+building-type searches such as `school floor plan`, `museum elevation`, and
+`civic architectural drawing`. Retrieved candidates are fetched and checked
+with OpenCV before a scan can proceed. If `LOCAL_MODEL_URL` is set for the
+local Ollama-compatible guidance model, it also reranks blueprint titles; the
+retrieval path remains fully functional without that model.
+
 Open [http://localhost:3000](http://localhost:3000).
 
 1. Create an account

@@ -18,6 +18,38 @@ function classifyBlueprint(title: string): BlueprintSheetKind {
   return "unknown";
 }
 
+async function rerankWithLocalModel<T extends { title: string }>(references: T[]): Promise<T[]> {
+  const endpoint = process.env.LOCAL_MODEL_URL;
+  if (!endpoint || references.length < 2) return references;
+  try {
+    const response = await fetch(`${endpoint.replace(/\/$/, "")}/api/generate`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        model: process.env.LOCAL_MODEL_NAME ?? "llama3.2:3b",
+        stream: false,
+        format: "json",
+        prompt: [
+          "Rank these image titles for use as architectural blueprint evidence.",
+          "Prefer floor plans, site plans, elevations, sections, and schematics. Return JSON only: {\"order\":[numbers]}",
+          JSON.stringify(references.map((reference, index) => ({ index, title: reference.title }))),
+        ].join("\n"),
+      }),
+      signal: AbortSignal.timeout(2500),
+    });
+    if (!response.ok) return references;
+    const data = (await response.json()) as { response?: string };
+    const order = JSON.parse(data.response ?? "{}").order as unknown;
+    if (!Array.isArray(order)) return references;
+    const ranked = order
+      .filter((index): index is number => Number.isInteger(index) && index >= 0 && index < references.length)
+      .map((index) => references[index]);
+    return ranked.length === references.length ? ranked : references;
+  } catch {
+    return references;
+  }
+}
+
 /** Retrieve and analyze every public blueprint sheet we can find. This is
  * deliberately a small, auditable RAG step: search metadata from open
  * collections, retrieve the original image, then enrich each result with
@@ -27,7 +59,7 @@ export async function retrieveAndAnalyzeBlueprints(
   buildingType?: string,
   limit = 10
 ): Promise<BlueprintSheetAnalysis[]> {
-  const references = await searchPublicBlueprints(placeQuery, limit, buildingType);
+  const references = await rerankWithLocalModel(await searchPublicBlueprints(placeQuery, limit, buildingType));
   const sheets: BlueprintSheetAnalysis[] = [];
 
   for (const reference of references) {
