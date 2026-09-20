@@ -9,7 +9,6 @@ import { analyzeBlueprint } from "@/lib/blueprintAnalysis";
 import { searchInteriorPlaceImages } from "@/lib/imageSearch";
 import { retrieveAndAnalyzeBlueprints, blueprintGeometryForModel } from "@/lib/blueprintPipeline";
 import { analyzeImageWithOpenCV } from "@/lib/imageAnalysis";
-import { safeFetch } from "@/lib/safeFetch";
 import { enqueueScanReconstruction } from "@/lib/queue";
 import { ROLES } from "@/lib/roles";
 
@@ -166,29 +165,50 @@ async function createScan(request: Request, user: NonNullable<Awaited<ReturnType
     }
   }
 
-  // Run real OpenCV (edge + contour detection) on whichever source image
-  // best represents the space's layout: a manually uploaded blueprint first
-  // (the user's own ground truth), then a found blueprint, falling back to
-  // the first uploaded overview photo.
-  let imageAnalysis: string | null = null;
-  try {
-    const blueprintUrl = (JSON.parse(publicBlueprints) as { url: string }[])[0]?.url;
-    const analysisSource =
-      blueprint instanceof File
-        ? Buffer.from(await blueprint.arrayBuffer())
-        : blueprintUrl
-          ? Buffer.from(await (await safeFetch(blueprintUrl)).arrayBuffer())
-          : photos[0]
-            ? Buffer.from(await photos[0].arrayBuffer())
-            : null;
-    if (analysisSource) {
-      imageAnalysis = JSON.stringify(await analyzeImageWithOpenCV(analysisSource));
-    }
-  } catch (err) {
-    console.warn(
-      `[scans] OpenCV image analysis failed for scan ${scan.id}:`,
-      err instanceof Error ? err.message : err
+  const blueprintSheets = JSON.parse(publicBlueprints) as Array<{
+    retrievalStatus?: string;
+    analysis?: unknown;
+  }>;
+  const hasUploadedBlueprint = blueprint instanceof File && blueprint.size > 0;
+  const hasAnalyzedPublicBlueprint = blueprintSheets.some(
+    (sheet) => sheet.retrievalStatus === "analyzed" && sheet.analysis
+  );
+
+  if (!hasUploadedBlueprint && !hasAnalyzedPublicBlueprint) {
+    await prisma.scan.delete({ where: { id: scan.id } });
+    return NextResponse.json(
+      {
+        error:
+          "No usable blueprint was found. Upload a floor plan, site plan, elevation, or section drawing, or use a place with a publicly available blueprint.",
+        code: "BLUEPRINT_REQUIRED",
+      },
+      { status: 422 }
     );
+  }
+
+  // Run real OpenCV (edge + contour detection) on the user's uploaded
+  // blueprint when present. Public sheets already carry per-sheet analysis
+  // from retrieveAndAnalyzeBlueprints.
+  let imageAnalysis: string | null = null;
+  if (hasUploadedBlueprint) {
+    try {
+      imageAnalysis = JSON.stringify(
+        await analyzeImageWithOpenCV(Buffer.from(await blueprint.arrayBuffer()))
+      );
+    } catch (err) {
+      await prisma.scan.delete({ where: { id: scan.id } });
+      console.warn(
+        `[scans] Uploaded blueprint analysis failed for scan ${scan.id}:`,
+        err instanceof Error ? err.message : err
+      );
+      return NextResponse.json(
+        {
+          error: "The uploaded blueprint could not be analyzed. Please upload a clearer plan image.",
+          code: "BLUEPRINT_ANALYSIS_FAILED",
+        },
+        { status: 422 }
+      );
+    }
   }
 
   const photoKeys: string[] = [];
@@ -239,7 +259,7 @@ async function createScan(request: Request, user: NonNullable<Awaited<ReturnType
       imageAnalysis: JSON.stringify({
         primary: imageAnalysis ? JSON.parse(imageAnalysis) : null,
         buildingType,
-        sheets: JSON.parse(publicBlueprints).map((sheet: { title: string; kind: string; analysis?: unknown }) => ({
+        sheets: blueprintSheets.map((sheet: { title?: string; kind?: string; analysis?: unknown }) => ({
           title: sheet.title,
           kind: sheet.kind,
           analysis: sheet.analysis ?? null,
