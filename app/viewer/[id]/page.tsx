@@ -68,6 +68,10 @@ export default function ViewerPage({ params }: { params: Promise<{ id: string }>
   const loadScan = useCallback(async () => {
     const res = await fetch(`/api/scans/${id}`);
     const data = await res.json();
+    if (res.status === 401) {
+      router.replace(`/login?next=/viewer/${id}`);
+      return;
+    }
     if (!data.scan) {
       router.replace("/scans");
       return;

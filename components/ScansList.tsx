@@ -35,7 +35,10 @@ export function ScansList({
     setError(null);
     try {
       const res = await fetch(`/api/scans/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Could not delete scan");
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(data?.error ?? `Could not delete scan (${res.status})`);
+      }
       setScans((prev) => prev.filter((s) => s.id !== id));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not delete scan");
