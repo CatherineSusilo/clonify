@@ -52,6 +52,7 @@ async def infer(images: Annotated[list[UploadFile], File()]):
             path = Path(directory) / f"{index}.jpg"
             try:
                 with Image.open(source) as image:
+                    image.thumbnail((1280, 1280), Image.Resampling.LANCZOS)
                     image.convert("RGB").save(path, format="JPEG", quality=92)
                 paths.append(str(path))
             except (UnidentifiedImageError, OSError):

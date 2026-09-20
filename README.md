@@ -43,7 +43,9 @@ not need to run a second server command. Set
 environment, then restart Clonify. Conservative local defaults send four views per reconstruction, use
 one inference minibatch, cap CPU inference at two threads, and load the model
 only when the first scan arrives. Tune `MAP_ANYTHING_MAX_VIEWS` or
-`MAP_ANYTHING_CPU_THREADS` only when your machine has headroom. MapAnything
+`MAP_ANYTHING_CPU_THREADS` only when your machine has headroom. CPU inference
+may take several minutes locally; `MAP_ANYTHING_TIMEOUT_MS` defaults to 15
+minutes. MapAnything
 must be available to the app-managed worker for reconstruction; failures are
 surfaced instead of replaced with a generic room.
 

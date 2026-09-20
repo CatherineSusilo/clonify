@@ -28,7 +28,7 @@ export async function reconstructWithMapAnything(images: SourceImage[]): Promise
   const response = await fetch(`${endpoint.replace(/\/$/, "")}/infer`, {
     method: "POST",
     body: form,
-    signal: AbortSignal.timeout(180_000),
+    signal: AbortSignal.timeout(Number(process.env.MAP_ANYTHING_TIMEOUT_MS ?? 900_000)),
   });
   if (!response.ok) {
     const detail = await response.text().catch(() => "");
