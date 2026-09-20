@@ -35,16 +35,17 @@ conda create -n mapanything python=3.12 -y
 conda activate mapanything
 pip install -e .
 pip install -r /path/to/clonify/services/mapanything/requirements.txt
-uvicorn --app-dir /path/to/clonify/services/mapanything app:app --host 127.0.0.1 --port 8787
 ```
 
-Then set `MAP_ANYTHING_URL="http://127.0.0.1:8787"` in `.env` and restart
-Clonify. Conservative local defaults send four views per reconstruction, use
+The Next.js app starts this service automatically during Node startup; you do
+not need to run a second server command. Set
+`MAP_ANYTHING_PYTHON` if MapAnything is installed in a virtualenv/conda
+environment, then restart Clonify. Conservative local defaults send four views per reconstruction, use
 one inference minibatch, cap CPU inference at two threads, and load the model
 only when the first scan arrives. Tune `MAP_ANYTHING_MAX_VIEWS` or
 `MAP_ANYTHING_CPU_THREADS` only when your machine has headroom. MapAnything
-must be running for reconstruction; failures are surfaced instead of replaced
-with a generic room.
+must be available to the app-managed worker for reconstruction; failures are
+surfaced instead of replaced with a generic room.
 
 Blueprint retrieval first searches the named place, then falls back to public
 building-type searches such as `school floor plan`, `museum elevation`, and

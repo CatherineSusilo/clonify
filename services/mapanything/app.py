@@ -12,6 +12,7 @@ from typing import Annotated
 import numpy as np
 import torch
 from fastapi import FastAPI, File, UploadFile
+from fastapi.responses import JSONResponse
 from mapanything.models import MapAnything
 from mapanything.utils.image import load_images
 
@@ -31,6 +32,12 @@ def get_model():
         model = MapAnything.from_pretrained("facebook/map-anything-apache").to(device)
         model.eval()
     return model
+
+
+@app.get("/health")
+async def health():
+    # Readiness does not load the model; the first reconstruction loads it lazily.
+    return JSONResponse({"status": "ok", "provider": "map-anything"})
 
 
 @app.post("/infer")

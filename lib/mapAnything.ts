@@ -16,8 +16,8 @@ export type MapAnythingResult = {
  * separate from Next.js because MapAnything requires Python/PyTorch and
  * GPU-aware model loading. No external hosted inference is used. */
 export async function reconstructWithMapAnything(images: SourceImage[]): Promise<MapAnythingResult> {
-  const endpoint = process.env.MAP_ANYTHING_URL;
-  if (!endpoint) throw new Error("MapAnything is not configured. Start the local service and set MAP_ANYTHING_URL.");
+  const { ensureMapAnythingService } = await import("./mapAnythingServer");
+  const endpoint = await ensureMapAnythingService();
   if (images.length === 0) throw new Error("MapAnything needs at least one image");
 
   const form = new FormData();
