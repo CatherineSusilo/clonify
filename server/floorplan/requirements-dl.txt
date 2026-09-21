@@ -1,0 +1,6 @@
+# Optional deep-learning wall segmenter (see dl_segment.py / DL_MODEL.md).
+# Only needed if you enable a learned model via CLONIFY_DL_MODEL; the default
+# classical pipeline needs none of this.
+onnxruntime>=1.16
+# onnx is only needed to build/convert/verify models, not to run inference:
+onnx>=1.15

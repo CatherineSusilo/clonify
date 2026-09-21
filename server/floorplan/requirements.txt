@@ -1,0 +1,13 @@
+# Clonify floor-plan analyzer (2D blueprint -> walkable grid).
+# Open-source, weights-free CV stack — the same libraries the published
+# floor-plan recognition research is built on. No external API, no downloads.
+opencv-python-headless>=4.8
+numpy>=1.24
+scipy>=1.10
+scikit-image>=0.21
+# 2D polygon maths for vectorizing the plan into a clean footprint + rooms
+# (real shape / areas / centroids). Optional — analyzer skips it if absent.
+shapely>=2.0
+# OCR for reading room labels off the blueprint -> auto delivery points.
+# Requires the `tesseract` binary on PATH (apt: tesseract-ocr). Called via
+# the CLI, so no Python OCR package is strictly required.

@@ -65,6 +65,7 @@ export function toPublicUser(
     email: user.email,
     role: user.role,
     unitPreference: user.unitPreference,
+    productSelections: JSON.parse(user.productSelections || "[]"),
     subscription: user.subscription
       ? { isPro: user.subscription.isPro, plan: user.subscription.plan }
       : null,

@@ -11,6 +11,7 @@ Photograph a space. Get a walkable, AR-ready 3D environment with floor plans, ro
 - Stripe Checkout for Pro / Enterprise
 - OpenStreetMap / Nominatim / Wikimedia for public-building context
 - MapAnything (local Python/PyTorch bridge) for metric multi-view geometry, camera poses, scale, confidence, and the renderable point-cloud GLB
+- Upstream `Noahabebe/clonify` floorplan vectorization and ROS2 robotics foundations under `server/floorplan/` and `robot/`
 
 ## Local setup
 
@@ -64,6 +65,16 @@ Open [http://localhost:3000](http://localhost:3000).
 4. Wait on the processing screen, then open the viewer
 
 Starter includes **one active scan** and **four rooms**. Delete a scan or upgrade to add more.
+
+## Three product phases
+
+1. **Indoor Navigation** provides accessible, multi-floor routes and live guidance.
+2. **Indoor Showcase + Renovation** turns captures into a virtual home/property
+   tour and a builder workflow for progress, issues, measurements, and plans.
+3. **Clonify Robotics** is confidential and admin-gated. The upstream floorplan
+   compiler and ROS2 fleet foundations are included under `server/floorplan/`
+   and `robot/`. Only `mail@clonify.ca` can reveal the product in `/admin`; it
+   must remain disabled until IP/patent approval.
 
 ## Scripts
 

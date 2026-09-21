@@ -31,11 +31,27 @@ model User {
   passwordHash   String
   role           Role?
   unitPreference UnitPreference @default(IMPERIAL)
+  productSelections String @default("[]")
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
   scans          Scan[]
   sessions       Session[]
   subscription   Subscription?
+}
+
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+model Lead {
+  id        String   @id @default(cuid())
+  kind      String
+  name      String
+  email     String
+  message   String
+  createdAt DateTime @default(now())
 }
 
 model Session {

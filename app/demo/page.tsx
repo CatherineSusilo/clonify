@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { IndoorNavigationPanel } from "@/components/IndoorNavigationPanel";
+import { LeadForm } from "@/components/LeadForm";
 import type { RoomSummary } from "@/components/RoomsPanel";
 
 const DEMO_ROOMS: RoomSummary[] = [
@@ -49,6 +50,7 @@ export default function DemoPage() {
         <div className="border border-line bg-ink-soft p-4"><p className="text-blueprint-light">02 · Accessible path</p><p className="mt-1 text-muted">The demo route uses the lift for its level transition.</p></div>
         <div className="border border-line bg-ink-soft p-4"><p className="text-blueprint-light">03 · AR ready</p><p className="mt-1 text-muted">Use a compatible phone or headset to place the demo building in your space.</p></div>
       </div>
+      <div className="mt-8 grid gap-5 lg:grid-cols-2"><LeadForm kind="demo-contact" title="Talk to us about your building" /><div className="border border-line bg-ink-soft p-5"><h2 className="font-display text-xl">Pilot testing</h2><p className="mt-2 text-sm text-muted">Test the navigation, showcase, and renovation workflows with your own building.</p><Link href="/pilot" className="mt-5 inline-block border border-blueprint-light px-4 py-2">Request a pilot</Link></div></div>
     </div>
   );
 }

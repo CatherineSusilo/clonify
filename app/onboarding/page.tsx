@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
 import { ROLES, ROLE_INFO, type RoleKey } from "@/lib/roles";
+import { PRODUCTS, type ProductKey } from "@/lib/products";
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -11,16 +12,19 @@ export default function OnboardingPage() {
   const [unit, setUnit] = useState<"IMPERIAL" | "METRIC">("IMPERIAL");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [products, setProducts] = useState<ProductKey[]>(["NAVIGATION"]);
+  const [roboticsVisible, setRoboticsVisible] = useState(false);
+  useEffect(() => { fetch("/api/admin/robotics").then((res) => res.json()).then((data) => setRoboticsVisible(data.enabled)); }, []);
 
   async function handleContinue() {
-    if (!role) return;
+    if (!role || products.length === 0) return;
     setSubmitting(true);
     setError(null);
     try {
       const res = await fetch("/api/user", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role, unitPreference: unit }),
+        body: JSON.stringify({ role, unitPreference: unit, productSelections: products }),
       });
       if (!res.ok) throw new Error("Couldn't save your role. Try again.");
       router.push("/scan");
@@ -54,6 +58,15 @@ export default function OnboardingPage() {
               <div>
                 <h3 className="font-display text-lg font-medium">{info.label}</h3>
                 <p className="mt-1 text-sm">{info.tagline}</p>
+              </div>
+              <h2 className="mt-10 font-display text-xl">Choose your Clonify products</h2>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                {PRODUCTS.filter((product) => product.key !== "ROBOTICS" || roboticsVisible).map((product) => {
+                  const selected = products.includes(product.key);
+                  return <button key={product.key} type="button" onClick={() => setProducts((current) => selected ? current.filter((key) => key !== product.key) : [...current, product.key])} className={clsx("border p-4 text-left", selected ? "border-blueprint-light bg-blueprint/20" : "border-line")}>
+                    <span className="font-medium">{product.label}</span><span className="mt-1 block text-sm text-muted">{product.description}</span>
+                  </button>;
+                })}
               </div>
               <span
                 className={clsx(

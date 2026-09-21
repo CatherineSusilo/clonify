@@ -1,0 +1,24 @@
+# Default parameters for a Clonify delivery unit.
+clonify_nav:
+  ros__parameters:
+    cruise_speed_mps: 1.2
+    waypoint_tolerance_m: 0.15
+
+clonify_perception:
+  ros__parameters:
+    stop_distance_m: 0.6
+    slow_distance_m: 1.2
+
+clonify_elevator:
+  ros__parameters:
+    # Mechanical envelope of the vertical mast — the unit elevates itself
+    # from its base to reach call buttons / panels; per-building target
+    # heights come from the synced elevator profiles.
+    mast_min_mm: 350
+    mast_max_mm: 1600
+    actuator_pins: 20
+
+clonify_telemetry:
+  ros__parameters:
+    rate_hz: 2.0
+    low_battery_pct: 20.0
