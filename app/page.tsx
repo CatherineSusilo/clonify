@@ -12,7 +12,7 @@ const capabilities = [
 export default async function Home() {
   const user = await getCurrentUser();
   const primaryHref = user ? (user.role ? "/scans" : "/onboarding") : "/signup";
-  const roboticsEnabled = (await prisma.appSetting.findUnique({ where: { key: "robotics_enabled" } }))?.value === "true";
+  const roboticsEnabled = (await prisma.appSetting?.findUnique?.({ where: { key: "robotics_enabled" } }))?.value === "true";
 
   return (
     <main className="flex-1">
