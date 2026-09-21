@@ -36,7 +36,10 @@ export function AccountForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role, unitPreference: unit }),
       });
-      if (!res.ok) throw new Error("Couldn't save account settings.");
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(data?.error ?? "Couldn't save account settings.");
+      }
       setSaved(true);
       router.refresh();
     } catch (err) {

@@ -13,7 +13,7 @@ export async function GET() {
 const bodySchema = z.object({
   role: z.enum(ROLES),
   unitPreference: z.enum(["IMPERIAL", "METRIC"]),
-  productSelections: z.array(z.enum(["NAVIGATION", "SHOWCASE", "RENOVATION", "ROBOTICS"])).min(1),
+  productSelections: z.array(z.enum(["NAVIGATION", "SHOWCASE", "RENOVATION", "ROBOTICS"])).min(1).optional(),
 });
 
 export async function POST(request: Request) {
@@ -28,11 +28,12 @@ export async function POST(request: Request) {
   const { role, unitPreference, productSelections } = parsed.data;
   const roboticsSetting = await prisma.appSetting.findUnique({ where: { key: "robotics_enabled" } });
   const roboticsAllowed = user.email.toLowerCase() === ADMIN_EMAIL || roboticsSetting?.value === "true";
-  const safeProducts = productSelections.filter((product): product is ProductKey => product !== "ROBOTICS" || roboticsAllowed);
+  const selectedProducts = productSelections ?? (JSON.parse(user.productSelections || "[]") as ProductKey[]);
+  const safeProducts = selectedProducts.filter((product): product is ProductKey => product !== "ROBOTICS" || roboticsAllowed);
 
   const updated = await prisma.user.update({
     where: { id: user.id },
-    data: { role, unitPreference, productSelections: JSON.stringify(safeProducts) },
+    data: { role, unitPreference, productSelections: JSON.stringify(safeProducts.length ? safeProducts : ["NAVIGATION"]) },
   });
 
   return NextResponse.json({ user: toPublicUser({ ...user, ...updated }) });
