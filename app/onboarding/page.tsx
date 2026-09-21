@@ -15,7 +15,12 @@ export default function OnboardingPage() {
   const [products, setProducts] = useState<ProductKey[]>(["NAVIGATION"]);
   const [roboticsVisible, setRoboticsVisible] = useState(false);
   const [modelTrainingConsent, setModelTrainingConsent] = useState(false);
-  useEffect(() => { fetch("/api/admin/robotics").then((res) => res.json()).then((data) => setRoboticsVisible(data.enabled)); }, []);
+  useEffect(() => {
+    fetch("/api/admin/robotics")
+      .then((res) => (res.ok ? res.json() : { enabled: false }))
+      .then((data) => setRoboticsVisible(data.enabled === true))
+      .catch(() => setRoboticsVisible(false));
+  }, []);
 
   async function handleContinue() {
     if (!role || products.length === 0) return;
@@ -60,15 +65,6 @@ export default function OnboardingPage() {
                 <h3 className="font-display text-lg font-medium">{info.label}</h3>
                 <p className="mt-1 text-sm">{info.tagline}</p>
               </div>
-              <h2 className="mt-10 font-display text-xl">Choose your Clonify products</h2>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                {PRODUCTS.filter((product) => product.key !== "ROBOTICS" || roboticsVisible).map((product) => {
-                  const selected = products.includes(product.key);
-                  return <button key={product.key} type="button" onClick={() => setProducts((current) => selected ? current.filter((key) => key !== product.key) : [...current, product.key])} className={clsx("border p-4 text-left", selected ? "border-blueprint-light bg-blueprint/20" : "border-line")}>
-                    <span className="font-medium">{product.label}</span><span className="mt-1 block text-sm text-muted">{product.description}</span>
-                  </button>;
-                })}
-              </div>
               <span
                 className={clsx(
                   "h-4 w-4 shrink-0 border",
@@ -78,6 +74,16 @@ export default function OnboardingPage() {
               />
             </button>
           );
+        })}
+      </div>
+
+      <h2 className="mt-10 font-display text-xl">Choose your Clonify products</h2>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        {PRODUCTS.filter((product) => product.key !== "ROBOTICS" || roboticsVisible).map((product) => {
+          const selected = products.includes(product.key);
+          return <button key={product.key} type="button" onClick={() => setProducts((current) => selected ? current.filter((key) => key !== product.key) : [...current, product.key])} className={clsx("border p-4 text-left", selected ? "border-blueprint-light bg-blueprint/20" : "border-line")}>
+            <span className="font-medium">{product.label}</span><span className="mt-1 block text-sm text-muted">{product.description}</span>
+          </button>;
         })}
       </div>
 
@@ -98,11 +104,11 @@ export default function OnboardingPage() {
             </button>
           ))}
         </div>
-        <label className="mt-8 flex items-start gap-3 text-sm text-muted">
-          <input type="checkbox" checked={modelTrainingConsent} onChange={(event) => setModelTrainingConsent(event.target.checked)} className="mt-1" />
-          <span>I agree that Clonify may use opted-in, de-identified captures to improve its reconstruction and ONNX-deployed computer-vision models. I can withdraw this choice in Account.</span>
-        </label>
       </div>
+      <label className="mt-8 flex items-start gap-3 text-sm text-muted">
+        <input type="checkbox" checked={modelTrainingConsent} onChange={(event) => setModelTrainingConsent(event.target.checked)} className="mt-1" />
+        <span>I agree that Clonify may use opted-in, de-identified captures to improve its reconstruction and ONNX-deployed computer-vision models. I can withdraw this choice in Account.</span>
+      </label>
 
       {error && <p className="mt-4 text-sm text-danger">{error}</p>}
 

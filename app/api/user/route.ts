@@ -28,7 +28,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
   const { role, unitPreference, productSelections } = parsed.data;
-  const roboticsSetting = await prisma.appSetting.findUnique({ where: { key: "robotics_enabled" } });
+  const roboticsSetting = prisma.appSetting?.findUnique
+    ? await prisma.appSetting.findUnique({ where: { key: "robotics_enabled" } })
+    : null;
   const roboticsAllowed = user.email.toLowerCase() === ADMIN_EMAIL || roboticsSetting?.value === "true";
   const selectedProducts = productSelections ?? parseProductSelections(user.productSelections);
   const safeProducts = selectedProducts.filter((product): product is ProductKey => product !== "ROBOTICS" || roboticsAllowed);

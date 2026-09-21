@@ -10,7 +10,9 @@ async function admin() {
 
 export async function GET() {
   const user = await getCurrentUser();
-  const setting = await prisma.appSetting.findUnique({ where: { key: "robotics_enabled" } });
+  const setting = prisma.appSetting?.findUnique
+    ? await prisma.appSetting.findUnique({ where: { key: "robotics_enabled" } })
+    : null;
   return NextResponse.json({ enabled: setting?.value === "true", isAdmin: user?.email.toLowerCase() === ADMIN_EMAIL });
 }
 
