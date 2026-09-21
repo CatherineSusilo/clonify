@@ -9,6 +9,15 @@ export function SiteFooter() {
           <Link href="/pricing" className="hover:text-ink-text">
             Pricing
           </Link>
+          <Link href="/demo" className="hover:text-ink-text">
+            Demo
+          </Link>
+          <Link href="/pilot" className="hover:text-ink-text">
+            Pilot
+          </Link>
+          <Link href="/legal/ai-data" className="hover:text-ink-text">
+            AI data policy
+          </Link>
           <Link href="/scans" className="hover:text-ink-text">
             Scans
           </Link>

@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { randomBytes } from "crypto";
 import bcrypt from "bcryptjs";
 import { prisma } from "./prisma";
+import { parseProductSelections } from "./productSelection";
 
 const COOKIE_NAME = "session";
 const SESSION_DAYS = 30;
@@ -65,7 +66,8 @@ export function toPublicUser(
     email: user.email,
     role: user.role,
     unitPreference: user.unitPreference,
-    productSelections: JSON.parse(user.productSelections || "[]"),
+    productSelections: parseProductSelections(user.productSelections),
+    modelTrainingConsent: user.modelTrainingConsent,
     subscription: user.subscription
       ? { isPro: user.subscription.isPro, plan: user.subscription.plan }
       : null,

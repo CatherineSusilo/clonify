@@ -14,6 +14,7 @@ export default function OnboardingPage() {
   const [error, setError] = useState<string | null>(null);
   const [products, setProducts] = useState<ProductKey[]>(["NAVIGATION"]);
   const [roboticsVisible, setRoboticsVisible] = useState(false);
+  const [modelTrainingConsent, setModelTrainingConsent] = useState(false);
   useEffect(() => { fetch("/api/admin/robotics").then((res) => res.json()).then((data) => setRoboticsVisible(data.enabled)); }, []);
 
   async function handleContinue() {
@@ -24,7 +25,7 @@ export default function OnboardingPage() {
       const res = await fetch("/api/user", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role, unitPreference: unit, productSelections: products }),
+        body: JSON.stringify({ role, unitPreference: unit, productSelections: products, modelTrainingConsent }),
       });
       if (!res.ok) throw new Error("Couldn't save your role. Try again.");
       router.push("/scan");
@@ -97,6 +98,10 @@ export default function OnboardingPage() {
             </button>
           ))}
         </div>
+        <label className="mt-8 flex items-start gap-3 text-sm text-muted">
+          <input type="checkbox" checked={modelTrainingConsent} onChange={(event) => setModelTrainingConsent(event.target.checked)} className="mt-1" />
+          <span>I agree that Clonify may use opted-in, de-identified captures to improve its reconstruction and ONNX-deployed computer-vision models. I can withdraw this choice in Account.</span>
+        </label>
       </div>
 
       {error && <p className="mt-4 text-sm text-danger">{error}</p>}

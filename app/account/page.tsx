@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getPlanLimits } from "@/lib/plans";
 import { AccountForm } from "@/components/AccountForm";
 import type { RoleKey } from "@/lib/roles";
+import { parseProductSelections } from "@/lib/productSelection";
 
 export default async function AccountPage() {
   const user = await getCurrentUser();
@@ -18,6 +19,8 @@ export default async function AccountPage() {
           email={user.email}
           initialRole={user.role as RoleKey}
           initialUnit={user.unitPreference}
+          initialProducts={parseProductSelections(user.productSelections)}
+          initialModelTrainingConsent={user.modelTrainingConsent}
           plan={getPlanLimits(user.subscription)}
         />
       </div>

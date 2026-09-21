@@ -32,6 +32,8 @@ model User {
   role           Role?
   unitPreference UnitPreference @default(IMPERIAL)
   productSelections String @default("[]")
+  modelTrainingConsent Boolean @default(false)
+  modelTrainingConsentAt DateTime?
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
   scans          Scan[]
